@@ -75,7 +75,6 @@ def baseline(qbow, sentences, stopwords, type):
     return best_answer
 
 def get_the_right_sentence_maybe(question_id):
-	return "test"
     driver = QABase()
     q = driver.get_question(question_id)
     story = driver.get_story(q["sid"])
