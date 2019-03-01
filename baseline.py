@@ -57,19 +57,14 @@ def baseline(qbow, sentences, stopwords, type):
     for a in reversed(answers[0:3]):
         answer = a[1]
         sent = " ".join(t[0] for t in answer)
-        print("score: ",a[0], " ", sent)
+        #print("score: ",a[0], " ", sent)
         #try some wizard magic
 
-        if(type == "Where"):
-            locations = ['in', 'along', 'on', 'under', 'near', 'at', 'in front of']
-            for l in locations:
-                if l in sent: best_answer = a[1]
+        #if(type == "Where"):
+         #   locations = ['in', 'along', 'on', 'under', 'near', 'at', 'in front of']
+          #  for l in locations:
+           #     if l in sent: best_answer = a[1]
 
-        if(type == "What"):
-
-            # I need to search for What __ [(det)? (NN/NNS)]
-            # and then return the sentence with the nn/nns.
-            pass
     if(best_answer == None):
         best_answer = (answers[0])[1]
     return best_answer
@@ -78,16 +73,18 @@ def get_the_right_sentence_maybe(question_id):
     driver = QABase()
     q = driver.get_question(question_id)
     story = driver.get_story(q["sid"])
-    if("Sch" in q["type"]):
+
+    if(q["type"] == 'sch'):
         text = story["sch"]
-    else: text = story["text"]
+    else:
+        text = story["text"]
+
     question = q["text"]
     print("question:", question)
     stopwords = set(nltk.corpus.stopwords.words("english"))
 
     #determining type from first word for now
     question_type = get_sentences(question)[0][0][0]
-    print(question_type)
 
     qbow = get_bow(get_sentences(question)[0], stopwords)
     sentences = get_sentences(text)

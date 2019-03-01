@@ -1,9 +1,11 @@
 
 from qa_engine.base import QABase
 from qa_engine.score_answers import main as score_answers
-import nltk, operator
+import nltk, operator, re
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
+
+porterrrr = nltk.PorterStemmer()
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
 from baseline import get_the_right_sentence_maybe
@@ -13,7 +15,6 @@ def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
     sentences = [nltk.word_tokenize(sent) for sent in sentences]
     sentences = [nltk.pos_tag(sent) for sent in sentences]
-
     return sentences
 
 
@@ -58,36 +59,143 @@ def find_phrase(tagged_tokens, qbow):
             return tagged_tokens[i + 1:]
 
 
-# qtokens: is a list of pos tagged question tokens with SW removed
-# sentences: is a list of pos tagged story sentences
-# stopwords is a set of stopwords
-def baseline(qbow, qlemm, sentences, stopwords):
-    # Collect all the candidate answers
-    answers = []
+def get_sentence_index(sentences, target):
+    i = 0
     for sent in sentences:
-        # A list of all the word tokens in the sentence
-        sbow = get_bow(sent, stopwords)
-        slemm = get_lemmatized(sent)
-        # Count the # of overlapping words between the Q and the A
-        # & is the set intersection operator
-        intersectbow = qbow & sbow
-        intersectlemm = qlemm & slemm
-        overlap = len(intersectlemm)
+        temp = (" ".join(t[0] for t in sent))
+        if temp == target:
+            return i
+        i += 1
 
-        answers.append((overlap, sent))
 
-    # Sort the results by the first element of the tuple (i.e., the count)
-    # Sort answers from smallest to largest by default, so reverse it
-    answers = sorted(answers, key=operator.itemgetter(0), reverse=True)
+    return None
 
-    # Return the best answer
-    best_answer = answers[0][1]
-    return best_answer
+###ADDING CONSTITUENCY TREE FUNCTIONS (FROM STUB) ###
+
+# See if our pattern matches the current root of the tree
+def matches(pattern, root):
+    # Base cases to exit our recursion
+    # If both nodes are null we've matched everything so far
+    if root is None and pattern is None:
+        return root
+
+    # We've matched everything in the pattern we're supposed to (we can ignore the extra
+    # nodes in the main tree for now)
+    elif pattern is None:
+        return root
+
+    # We still have something in our pattern, but there's nothing to match in the tree
+    elif root is None:
+        return None
+
+    # A node in a tree can either be a string (if it is a leaf) or node
+    plabel = pattern if isinstance(pattern, str) else pattern.label()
+    rlabel = root if isinstance(root, str) else root.label()
+
+    # If our pattern label is the * then match no matter what
+    if plabel == "*":
+        return root
+    # Otherwise they labels need to match
+    elif plabel == rlabel:
+        # If there is a match we need to check that all the children match
+        # Minor bug (what happens if the pattern has more children than the tree)
+        for pchild, rchild in zip(pattern, root):
+            match = matches(pchild, rchild)
+            if match is None:
+                return None
+        return root
+
+    return None
+
+
+def pattern_matcher(pattern, tree):
+    for subtree in tree.subtrees():
+        node = matches(pattern, subtree)
+        if node is not None:
+            return node
+    return None
+
+###END OF CONSTITUENCY FUNCTIONS###
+
+###NEW CONSTITUENCY FUNCTIONS: Manny Vassos###
+
+LOC_PP = set(["in", "on", "at", "to"])
+
+def constituency_search(qtype, tree):
+    print("Entered Constituency Search, Type: ", qtype)
+    print("")
+
+    qtype = qtype.lower()
+
+    if qtype == 'where':
+        print("*WHERE*\n")
+        # Create our pattern
+        pattern = nltk.ParentedTree.fromstring("(VP (*) (PP))")
+
+        # # Match our pattern to the tree
+        #print("\nPattern one found: ")
+        subtree = pattern_matcher(pattern, tree)
+        #print(" ".join(subtree.leaves()))
+
+        # create a new pattern to match a smaller subset of subtree
+        pattern = nltk.ParentedTree.fromstring("(PP)")
+        #print("Pattern two found: ")
+        # Find and print the answer
+        subtree2 = None;
+        if subtree is not None:
+            subtree2 = pattern_matcher(pattern, subtree)
+        if subtree2 is not None:
+            ans = (" ".join(subtree2.leaves()))
+            print("ans before: ", ans)
+            for pp in LOC_PP:
+                if pp in ans:
+                    ans = ans.replace(pp, "the")
+            print("ans after: ", ans)
+            return ans
+
+    elif qtype == 'why':
+        print("*WHY*\n")
+        #create first 'why' pattern looking for because
+        pattern = nltk.ParentedTree.fromstring("(SBAR (*))")
+
+        subtree = pattern_matcher(pattern, tree)
+
+        if subtree is None:
+            #answer does not include 'becasue'
+            pattern = nltk.ParentedTree.fromstring("(VP (*) (S)) ")
+            subtree = pattern_matcher(pattern, tree)
+
+            if subtree is not None:
+                #isolate (S)
+                pattern = nltk.ParentedTree.fromstring("(S)")
+                subtree2 = pattern_matcher(pattern, subtree)
+                return (" ".join(subtree2.leaves()))
+        else:
+            return (" ".join(subtree.leaves()))
+
+    elif qtype == "who":
+        print(" *WHO*\n")
+        #pattern = nltk.ParentedTree.fromstring("(NP)")
+        #subtree = pattern_matcher(pattern, tree)
+        #if subtree is not None:
+         #   return (" ".join(subtree.leaves()))
+
+    elif qtype == "what":
+        print(" *WHAT*\n")
+        #pattern = nltk.ParentedTree.fromstring("(PP (*) (NP))")
+        #subtree = pattern_matcher(pattern, tree)
+        #if subtree is not None:
+         #   return (" ".join(subtree.leaves()))
+
+    elif qtype == "when":
+        print(" *WHEN*\n")
+
+    return None
 
 
 def get_answer(question, story):
 
-    return get_the_right_sentence_maybe(question['qid'])
+
 
     """
     :param question: dict
@@ -122,22 +230,40 @@ def get_answer(question, story):
 
     if question['type'] == 'sch':
         stext = story['sch']
+        stree = story['sch_par']
     else:
         stext = story["text"]
+        stree = story['story_par']
+
     qtext = question["text"]
-    qlemm = get_lemmatized(get_sentences(qtext)[0])
-    qbow = get_bow(get_sentences(qtext)[0], STOPWORDS)
+
+
+    question_type = get_sentences(qtext)[0][0][0]
 
     #print("question: ", qtext)
     #print("question bow: ", qbow)
     #print("lemmatized version: ", qlemm)
 
     sentences = get_sentences(stext)
-    answer = baseline(qbow, qlemm, sentences, STOPWORDS)
-    #print("answer:", " ".join(t[0] for t in answer))
-    #print("")
-    answer = " ".join(t[0] for t in answer)
 
+    print("*Getting best sentence for ", question['qid'])
+
+    best_sent = get_the_right_sentence_maybe(question['qid'])
+
+    print("Before Cons: ", best_sent, "\n")
+
+    sent_index = get_sentence_index(sentences, best_sent)
+
+    cons_answer = constituency_search(question_type, stree[sent_index])
+    print("After Cons: ", cons_answer)
+    if cons_answer is None:
+        answer = best_sent
+        if answer is None:
+            answer = "the best guess"
+    else:
+        answer = cons_answer
+
+    print(answer)
     ###     End of Your Code         ###
     return answer
 
