@@ -6,6 +6,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
+
 def find_main(graph):
     for node in graph.nodes.values():
         if node['rel'] == 'root':
@@ -14,7 +15,7 @@ def find_main(graph):
     
 def find_node(word, graph):
     for node in graph.nodes.values():
-        if node["word"] == word:
+        if node["lemma"] == word["lemma"] or node["word"] == word["word"]:
             return node
     return None
     
@@ -30,14 +31,12 @@ def get_dependents(node, graph):
 
 def find_answer(qgraph, sgraph, q_type):
     qmain = find_main(qgraph)
-    qword = qmain["word"]
-    print( qword )
-    snode = find_node(qword, sgraph)
+    print( qmain["word"] )
+    print( qmain["lemma"] )
+    snode = find_node(qmain, sgraph)
     if snode is not None:
         for node in sgraph.nodes.values():
-            #print("node[head]=", node["head"])
-            if node.get('head', None) == snode["address"]:
-                #print(node["word"], node["rel"])
+            if node.get( 'head', None ) is not None:
                 if q_type == "Where":
                     if node['rel'] == "nmod":
                         deps = get_dependents(node, sgraph)
@@ -159,15 +158,15 @@ def get_answer(question, story):
         sid --  the story id
     """
     ###     Your Code Goes Here         ###
-    if question['type'] == 'sch':
+    if question['type'] == 'Sch':
         stext = story['sch']
     else:
         stext = story["text"]
     qtext = question["text"]
     qlemm = get_lemmatized(get_sentences(qtext)[0])
     qbow = get_bow(get_sentences(qtext)[0], STOPWORDS)
-
-    print("question: ", qtext)
+    print( question['qid'] )
+#    print("question: ", qtext)
 #    print("question bow: ", qbow)
 #    print("lemmatized version: ", qlemm)
 
@@ -175,19 +174,21 @@ def get_answer(question, story):
     answer = baseline(qbow, qlemm, sentences, STOPWORDS)
 
     answer_graph = ""
-    if question['type'] == 'sch':
+    if question['type'] == 'Sch':
         answer_graph = story['sch_dep'][answer[1]]
     else:
         answer_graph = story["story_dep"][answer[1]]
 
     q_type = qtext.split(" ")[0]
+    if ( q_type == "Who" ):
+        print( qtext )
     sub_answer = find_answer( question["dep"], answer_graph, q_type )
     if sub_answer is not None:
         print( sub_answer )
         print("----------------------------------------------")
         return sub_answer
-    print( "no sub_answer" )
-    print("answer:", " ".join(t[0] for t in answer[0]))
+    if ( q_type == "Who" ):
+        print("answer:", " ".join(t[0] for t in answer[0]))
     print("----------------------------------------------")
     answer = " ".join(t[0] for t in answer[0])
 

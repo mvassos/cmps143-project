@@ -33,7 +33,6 @@ def find_answer(qgraph, sgraph):
     print( qword )
 
     snode = find_node(qword, sgraph)
-    print( snode["word"] )
     for node in sgraph.nodes.values():
         #print("node[head]=", node["head"])
         if node.get('head', None) == snode["address"]:
@@ -54,7 +53,7 @@ if __name__ == '__main__':
 
     # get the dependency graph of the first question
     qgraph = q["dep"]
-    print("qgraph:", qgraph)
+    #print("qgraph:", qgraph)
 
     # The answer is in the second sentence
     # You would have to figure this out like in the chunking demo
