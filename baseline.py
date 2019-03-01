@@ -25,7 +25,9 @@ def get_sentences(text):
 def get_bow(tagged_tokens, stopwords):
     s1 = set([porterrrr.stem(t[0]).lower() for t in tagged_tokens if t[0].lower() not in stopwords])
     s2 = set([t[0].lower() for t in tagged_tokens if t[0].lower() not in stopwords])
-    return s1.union(s2)
+    superset =  s1.union(s2)
+    #print(superset)
+    return superset
 
 def find_phrase(tagged_tokens, qbow):
     for i in range(len(tagged_tokens) - 1, 0, -1):
@@ -67,6 +69,9 @@ def baseline(qbow, sentences, stopwords, type):
 
         if(type == "What"):
 
+            #what WAS _______
+            #find was is na significant word.
+
             # I need to search for What __ [(det)? (NN/NNS)]
             # and then return the sentence with the nn/nns.
             pass
@@ -84,6 +89,8 @@ def get_the_right_sentence_maybe(question_id):
     question = q["text"]
     print("question:", question)
     stopwords = set(nltk.corpus.stopwords.words("english"))
+    moreStopWords = set([",", "."])
+    stopwords = stopwords.union(moreStopWords)
 
     #determining type from first word for now
     question_type = get_sentences(question)[0][0][0]
