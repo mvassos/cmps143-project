@@ -6,7 +6,49 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
+def find_main(graph):
+    for node in graph.nodes.values():
+        if node['rel'] == 'root':
+            return node
+    return None
+    
+def find_node(word, graph):
+    for node in graph.nodes.values():
+        if node["word"] == word:
+            return node
+    return None
+    
+def get_dependents(node, graph):
+    results = []
+    for item in node["deps"]:
+        address = node["deps"][item][0]
+        dep = graph.nodes[address]
+        results.append(dep)
+        results = results + get_dependents(dep, graph)
+    return results
 
+
+def find_answer(qgraph, sgraph, q_type):
+    qmain = find_main(qgraph)
+    qword = qmain["word"]
+    print( qword )
+    snode = find_node(qword, sgraph)
+    if snode is not None:
+        for node in sgraph.nodes.values():
+            #print("node[head]=", node["head"])
+            if node.get('head', None) == snode["address"]:
+                #print(node["word"], node["rel"])
+                if q_type == "Where":
+                    if node['rel'] == "nmod":
+                        deps = get_dependents(node, sgraph)
+                        deps = sorted(deps+[node], key=operator.itemgetter("address"))    
+                        return " ".join(dep["word"] for dep in deps)
+                elif q_type == "Who":
+                    if node['rel'] == "nsubj":
+                        deps = get_dependents(node, sgraph)
+                        deps = sorted(deps+[node], key=operator.itemgetter("address"))    
+                        return " ".join(dep["word"] for dep in deps)
+    return None
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
@@ -63,24 +105,26 @@ def find_phrase(tagged_tokens, qbow):
 def baseline(qbow, qlemm, sentences, stopwords):
     # Collect all the candidate answers
     answers = []
-    for sent in sentences:
+    i = 0
+    while i < len(sentences):
         # A list of all the word tokens in the sentence
-        sbow = get_bow(sent, stopwords)
-        slemm = get_lemmatized(sent)
+        sbow = get_bow(sentences[i], stopwords)
+        slemm = get_lemmatized(sentences[i])
         # Count the # of overlapping words between the Q and the A
         # & is the set intersection operator
         intersectbow = qbow & sbow
         intersectlemm = qlemm & slemm
         overlap = len(intersectlemm)
 
-        answers.append((overlap, sent))
-
+        answers.append((overlap, sentences[i], i))
+        i += 1
     # Sort the results by the first element of the tuple (i.e., the count)
     # Sort answers from smallest to largest by default, so reverse it
     answers = sorted(answers, key=operator.itemgetter(0), reverse=True)
 
-    # Return the best answer
-    best_answer = answers[0][1]
+    # Return the best answer in form of tuple, the sentence itself and
+    # the index of the sentence in the sentences
+    best_answer = ( answers[0][1], answers[0][2] )
     return best_answer
 
 
@@ -115,7 +159,6 @@ def get_answer(question, story):
         sid --  the story id
     """
     ###     Your Code Goes Here         ###
-
     if question['type'] == 'sch':
         stext = story['sch']
     else:
@@ -124,15 +167,29 @@ def get_answer(question, story):
     qlemm = get_lemmatized(get_sentences(qtext)[0])
     qbow = get_bow(get_sentences(qtext)[0], STOPWORDS)
 
-    #print("question: ", qtext)
-    #print("question bow: ", qbow)
-    #print("lemmatized version: ", qlemm)
+    print("question: ", qtext)
+#    print("question bow: ", qbow)
+#    print("lemmatized version: ", qlemm)
 
     sentences = get_sentences(stext)
     answer = baseline(qbow, qlemm, sentences, STOPWORDS)
-    #print("answer:", " ".join(t[0] for t in answer))
-    #print("")
-    answer = " ".join(t[0] for t in answer)
+
+    answer_graph = ""
+    if question['type'] == 'sch':
+        answer_graph = story['sch_dep'][answer[1]]
+    else:
+        answer_graph = story["story_dep"][answer[1]]
+
+    q_type = qtext.split(" ")[0]
+    sub_answer = find_answer( question["dep"], answer_graph, q_type )
+    if sub_answer is not None:
+        print( sub_answer )
+        print("----------------------------------------------")
+        return sub_answer
+    print( "no sub_answer" )
+    print("answer:", " ".join(t[0] for t in answer[0]))
+    print("----------------------------------------------")
+    answer = " ".join(t[0] for t in answer[0])
 
     ###     End of Your Code         ###
     return answer
@@ -162,7 +219,7 @@ def main():
     # not you want to run your system on the evaluation
     # data. Evaluation data predictions will be saved
     # to hw6-eval-responses.tsv in the working directory.
-    run_qa(evaluate=True)
+    run_qa(evaluate=False)
     # You can uncomment this next line to evaluate your
     # answers, or you can run score_answers.py
     score_answers()

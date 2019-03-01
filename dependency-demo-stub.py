@@ -24,16 +24,16 @@ def get_dependents(node, graph):
         dep = graph.nodes[address]
         results.append(dep)
         results = results + get_dependents(dep, graph)
-        
     return results
 
 
 def find_answer(qgraph, sgraph):
     qmain = find_main(qgraph)
     qword = qmain["word"]
+    print( qword )
 
     snode = find_node(qword, sgraph)
-
+    print( snode["word"] )
     for node in sgraph.nodes.values():
         #print("node[head]=", node["head"])
         if node.get('head', None) == snode["address"]:
@@ -42,7 +42,6 @@ def find_answer(qgraph, sgraph):
             if node['rel'] == "nmod":
                 deps = get_dependents(node, sgraph)
                 deps = sorted(deps+[node], key=operator.itemgetter("address"))
-                
                 return " ".join(dep["word"] for dep in deps)
 
 
@@ -55,7 +54,7 @@ if __name__ == '__main__':
 
     # get the dependency graph of the first question
     qgraph = q["dep"]
-    #print("qgraph:", qgraph)
+    print("qgraph:", qgraph)
 
     # The answer is in the second sentence
     # You would have to figure this out like in the chunking demo
