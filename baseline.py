@@ -45,6 +45,7 @@ def find_phrase(tagged_tokens, qbow):
 def baseline(qbow, sentences, stopwords, question):
     q_sents = get_sentences(question)
     type = q_sents[0][0][0]
+
     # Collect all the candidate answers
     answers = []
     for sent in sentences:
@@ -62,7 +63,22 @@ def baseline(qbow, sentences, stopwords, question):
 
     # Return the best answer
     best_answer =  None
+
+    bestNounCount = [0,None]
     for a in reversed(answers[0:3]):
+
+
+
+        #find the index of the subject based on first occurence
+        subj = None
+        verb = None
+        for word in q_sents[0][1: (len(q_sents[0]) -1)]:
+            if(word[1] == "VBD" and verb == None):
+                verb =word[0]
+            if(word[1] == "NNP" and subj == None):
+                subj =word[0]
+
+
         answer = a[1]
         sent = " ".join(t[0] for t in answer)
         
@@ -76,18 +92,13 @@ def baseline(qbow, sentences, stopwords, question):
 
         if(type == "What"):
             #print(qbow)
-            subj = None
-            focus = None
-            for word in q_sents[0][1: (len(q_sents[0]) -1)]:
-                if subj is not None and focus is not None:
-                    focus = word[0]
-                if(word[1] == "NNP"):
-                    subj =word[0]
+
             if debug: print("QUESTION: ", q_sents[0])
             if debug: print("SUBJECT: ", subj)
-            if focus is not None:
-                if(focus in sent):
-                    best_answer = a[1]
+            if verb is not None:
+                if(verb in sent):
+                    pass
+                    #best_answer = a[1]
 
 
             #what WAS _______
@@ -96,10 +107,30 @@ def baseline(qbow, sentences, stopwords, question):
             # I need to search for What __ [(det)? (NN/NNS)]
             # and then return the sentence with the nn/nns.
             pass
-
+        
         if(type == "Who"):
-            #Who was the story about?
+            if("who is the story about" in question.lower()):
+                #return the sentence with the most nouns?
+                #print(question)
+                #print("score: ",a[0], " ", answer)
+                nouncount = 0
+                for word in answer:
+                    if(word[1] in ["NNP", "NNS"]):
+                        print("test")
+                        nouncount += 1
+
+                if(nouncount > bestNounCount[0]):
+                    bestNounCount[0] = nouncount
+                    bestNounCount[1] = a[1]
+
+        if(type == "Why"):
+
             pass
+
+    #for "who was the story about" case
+    if bestNounCount[0] != 0:
+        best_answer = bestNounCount[1]
+        #print("YEE")
 
     if(best_answer == None):
         best_answer = (answers[0])[1]
