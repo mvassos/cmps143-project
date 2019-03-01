@@ -47,6 +47,18 @@ def find_answer(qgraph, sgraph, q_type):
                         deps = get_dependents(node, sgraph)
                         deps = sorted(deps+[node], key=operator.itemgetter("address"))    
                         return " ".join(dep["word"] for dep in deps)
+    if ( q_type == "Who" ):  # who question main word not in sentence
+        q_list = []
+        for node in qgraph.nodes.values():
+            print( node["word"], node["rel"] )
+            q_list.append( node["word"] )
+        print( q_list )
+        subj_list = []
+        print( sgraph )
+        for node in sgraph.nodes.values():
+            if node["rel"] == "nsubj":
+                subj_list.append( node["word"] )
+        print( subj_list )
     return None
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
