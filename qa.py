@@ -4,9 +4,10 @@ from qa_engine.score_answers import main as score_answers
 import nltk, operator
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
+import baseline
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
-
+'''
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
@@ -20,7 +21,7 @@ def get_bow(tagged_tokens, stopwords):
     bow = set([t[0].lower() for t in tagged_tokens if t[0].lower() not in stopwords])
     return bow
 
-
+'''
 def get_lemmatized(tagged_tokens):
 
     #Method for getting set of lemmatized words from a tagged set
@@ -60,6 +61,7 @@ def find_phrase(tagged_tokens, qbow):
 # qtokens: is a list of pos tagged question tokens with SW removed
 # sentences: is a list of pos tagged story sentences
 # stopwords is a set of stopwords
+'''
 def baseline(qbow, qlemm, sentences, stopwords):
     # Collect all the candidate answers
     answers = []
@@ -82,9 +84,10 @@ def baseline(qbow, qlemm, sentences, stopwords):
     # Return the best answer
     best_answer = answers[0][1]
     return best_answer
-
+'''
 
 def get_answer(question, story):
+    answer = baseline.get_the_right_sentence_maybe(question["qid"])
     """
     :param question: dict
     :param story: dict
@@ -116,6 +119,8 @@ def get_answer(question, story):
     """
     ###     Your Code Goes Here         ###
 
+
+    '''
     if question['type'] == 'sch':
         stext = story['sch']
     else:
@@ -133,6 +138,8 @@ def get_answer(question, story):
     #print("answer:", " ".join(t[0] for t in answer))
     #print("")
     answer = " ".join(t[0] for t in answer)
+
+    '''
 
     ###     End of Your Code         ###
     return answer
@@ -162,7 +169,7 @@ def main():
     # not you want to run your system on the evaluation
     # data. Evaluation data predictions will be saved
     # to hw6-eval-responses.tsv in the working directory.
-    run_qa(evaluate=True)
+    run_qa(evaluate=False)
     # You can uncomment this next line to evaluate your
     # answers, or you can run score_answers.py
     score_answers()
