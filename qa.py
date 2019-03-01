@@ -1,7 +1,7 @@
 
 from qa_engine.base import QABase
 from qa_engine.score_answers import main as score_answers
-import nltk, operator, re
+import nltk, operator, re, sys
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
 
@@ -121,40 +121,48 @@ def pattern_matcher(pattern, tree):
 
 LOC_PP = set(["in", "on", "at", "to"])
 
-def constituency_search(qtype, tree):
+def constituency_search(qtype, tree, qtree):
+
     print("Entered Constituency Search, Type: ", qtype)
-    print("")
+    #print("\nTree of Question: ", qtree)
+    #print("\nTree of selected Sentece: ", tree)
+
 
     qtype = qtype.lower()
 
     if qtype == 'where':
-        print("*WHERE*\n")
+        #print("*WHERE*\n")
         # Create our pattern
         pattern = nltk.ParentedTree.fromstring("(VP (*) (PP))")
 
         # # Match our pattern to the tree
         #print("\nPattern one found: ")
         subtree = pattern_matcher(pattern, tree)
+
+        if subtree is None:
+            return None
+
         #print(" ".join(subtree.leaves()))
+        #print("\nSubtree1: ", subtree)
 
         # create a new pattern to match a smaller subset of subtree
         pattern = nltk.ParentedTree.fromstring("(PP)")
         #print("Pattern two found: ")
         # Find and print the answer
-        subtree2 = None;
+        subtree2 = None
         if subtree is not None:
             subtree2 = pattern_matcher(pattern, subtree)
         if subtree2 is not None:
             ans = (" ".join(subtree2.leaves()))
-            print("ans before: ", ans)
-            for pp in LOC_PP:
-                if pp in ans:
-                    ans = ans.replace(pp, "the")
-            print("ans after: ", ans)
+            #print("ans before: ", ans)
+            #for pp in LOC_PP:
+             #   if pp in ans:
+              #      ans = ans.replace(pp, "")
+            #print("ans after: ", ans)
             return ans
 
     elif qtype == 'why':
-        print("*WHY*\n")
+        #print("*WHY*\n")
         #create first 'why' pattern looking for because
         pattern = nltk.ParentedTree.fromstring("(SBAR (*))")
 
@@ -169,26 +177,35 @@ def constituency_search(qtype, tree):
                 #isolate (S)
                 pattern = nltk.ParentedTree.fromstring("(S)")
                 subtree2 = pattern_matcher(pattern, subtree)
-                return (" ".join(subtree2.leaves()))
+                if subtree2 is not None:
+                    return (" ".join(subtree2.leaves()))
+                else:
+                    return None
         else:
             return (" ".join(subtree.leaves()))
 
     elif qtype == "who":
-        print(" *WHO*\n")
-        #pattern = nltk.ParentedTree.fromstring("(NP)")
-        #subtree = pattern_matcher(pattern, tree)
-        #if subtree is not None:
-         #   return (" ".join(subtree.leaves()))
+        #print(" *WHO*\n")
+        pattern = nltk.ParentedTree.fromstring("(NP)")
+        subtree = pattern_matcher(pattern, tree)
+        if subtree is not None:
+            return (" ".join(subtree.leaves()))
 
     elif qtype == "what":
-        print(" *WHAT*\n")
-        #pattern = nltk.ParentedTree.fromstring("(PP (*) (NP))")
-        #subtree = pattern_matcher(pattern, tree)
-        #if subtree is not None:
-         #   return (" ".join(subtree.leaves()))
+        #print(" *WHAT*\n")
+        pattern = nltk.ParentedTree.fromstring("(VP (*) (NP))")
+        subtree = pattern_matcher(pattern, tree)
+
+        if subtree is None:
+            pattern = nltk.ParentedTree.fromstring("(NP)")
+            subtree = pattern_matcher(pattern, tree)
+
+        if subtree is not None:
+            #print("Pattern one found, tree: ", subtree)
+            return (" ".join(subtree.leaves()))
 
     elif qtype == "when":
-        print(" *WHEN*\n")
+        print(" *WHEN* not implemented\n")
 
     return None
 
@@ -228,7 +245,7 @@ def get_answer(question, story):
     """
     ###     Your Code Goes Here         ###
 
-    if question['type'] == 'sch':
+    if question['type'] == 'Sch':
         stext = story['sch']
         stree = story['sch_par']
     else:
@@ -236,7 +253,7 @@ def get_answer(question, story):
         stree = story['story_par']
 
     qtext = question["text"]
-
+    qtree = question['par']
 
     question_type = get_sentences(qtext)[0][0][0]
 
@@ -250,12 +267,14 @@ def get_answer(question, story):
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-    print("Before Cons: ", best_sent, "\n")
+    print("Before Constituency Search: ", best_sent, "\n")
 
     sent_index = get_sentence_index(sentences, best_sent)
+    cons_answer = None
+    if sent_index is not None:
+        cons_answer = constituency_search(question_type, stree[sent_index], qtree)
 
-    cons_answer = constituency_search(question_type, stree[sent_index])
-    print("After Cons: ", cons_answer)
+    print("Consistency Search Results: ", cons_answer)
     if cons_answer is None:
         answer = best_sent
         if answer is None:
@@ -263,7 +282,22 @@ def get_answer(question, story):
     else:
         answer = cons_answer
 
-    print(answer)
+    print("Final Answer: ", answer, "\n")
+
+
+    ###DEBUGGING TOOL TO STEP THROUGH QUESTIONS###
+    
+    #print("Press Any Key To Advance...")
+
+    #try:
+     #   print("Exit with q")
+      #  quit = input()
+       # if quit is 'q':
+        #    exit()
+        #input("Press enter to continue")
+    #except SyntaxError:
+       # pass
+
     ###     End of Your Code         ###
     return answer
 
