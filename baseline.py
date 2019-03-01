@@ -9,6 +9,8 @@ Modified on May 21, 2015
 import sys, nltk, operator
 from qa_engine.base import QABase
 porterrrr = nltk.PorterStemmer()
+driver = QABase()
+preStemmed = {}
 
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
@@ -17,10 +19,10 @@ def get_sentences(text):
 
     stemmedSents = []
     for sent in sentences:
-        stemmedSents.append([porterrrr.stem(word) for word in sent])
+        stemmedSents.append([word for word in sent])
     sentences = [nltk.pos_tag(sent) for sent in sentences]
     
-    return sentences	
+    return sentences    
 
 def get_bow(tagged_tokens, stopwords):
     s1 = set([porterrrr.stem(t[0]).lower() for t in tagged_tokens if t[0].lower() not in stopwords])
@@ -59,6 +61,7 @@ def baseline(qbow, sentences, stopwords, type):
     for a in reversed(answers[0:3]):
         answer = a[1]
         sent = " ".join(t[0] for t in answer)
+        
         print("score: ",a[0], " ", sent)
         #try some wizard magic
 
@@ -75,14 +78,20 @@ def baseline(qbow, sentences, stopwords, type):
             # I need to search for What __ [(det)? (NN/NNS)]
             # and then return the sentence with the nn/nns.
             pass
+
+        if(type == "Who"):
+            #Who was the story about?
+            pass
+
     if(best_answer == None):
         best_answer = (answers[0])[1]
     return best_answer
 
 def get_the_right_sentence_maybe(question_id):
-    driver = QABase()
+    
     q = driver.get_question(question_id)
     story = driver.get_story(q["sid"])
+
     if("Sch" in q["type"]):
         text = story["sch"]
     else: text = story["text"]
