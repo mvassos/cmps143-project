@@ -286,7 +286,7 @@ def get_answer(question, story):
 
 
     ###DEBUGGING TOOL TO STEP THROUGH QUESTIONS###
-    
+
     #print("Press Any Key To Advance...")
 
     #try:
