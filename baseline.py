@@ -9,9 +9,11 @@ Modified on May 21, 2015
 import sys, nltk, operator
 from qa_engine.base import QABase
 porterrrr = nltk.PorterStemmer()
+#porterrrr = nltk.stem.snowball.SnowballStemmer("english")
 driver = QABase()
 preStemmed = {}
 
+debug = False
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
@@ -40,7 +42,9 @@ def find_phrase(tagged_tokens, qbow):
 # qtokens: is a list of pos tagged question tokens with SW removed
 # sentences: is a list of pos tagged story sentences
 # stopwords is a set of stopwords
-def baseline(qbow, sentences, stopwords, type):
+def baseline(qbow, sentences, stopwords, question):
+    q_sents = get_sentences(question)
+    type = q_sents[0][0][0]
     # Collect all the candidate answers
     answers = []
     for sent in sentences:
@@ -62,7 +66,7 @@ def baseline(qbow, sentences, stopwords, type):
         answer = a[1]
         sent = " ".join(t[0] for t in answer)
         
-        print("score: ",a[0], " ", sent)
+        if debug: print("score: ",a[0], " ", sent)
         #try some wizard magic
 
         if(type == "Where"):
@@ -71,6 +75,20 @@ def baseline(qbow, sentences, stopwords, type):
                 if l in sent: best_answer = a[1]
 
         if(type == "What"):
+            #print(qbow)
+            subj = None
+            focus = None
+            for word in q_sents[0][1: (len(q_sents[0]) -1)]:
+                if subj is not None and focus is not None:
+                    focus = word[0]
+                if(word[1] == "NNP"):
+                    subj =word[0]
+            if debug: print("QUESTION: ", q_sents[0])
+            if debug: print("SUBJECT: ", subj)
+            if focus is not None:
+                if(focus in sent):
+                    best_answer = a[1]
+
 
             #what WAS _______
             #find was is na significant word.
@@ -96,19 +114,15 @@ def get_the_right_sentence_maybe(question_id):
         text = story["sch"]
     else: text = story["text"]
     question = q["text"]
-    print("question:", question)
+    if debug: print("question:", question)
     stopwords = set(nltk.corpus.stopwords.words("english"))
     moreStopWords = set([",", "."])
     stopwords = stopwords.union(moreStopWords)
 
-    #determining type from first word for now
-    question_type = get_sentences(question)[0][0][0]
-    print(question_type)
-
     qbow = get_bow(get_sentences(question)[0], stopwords)
     sentences = get_sentences(text)
 
-    answer = baseline(qbow, sentences, stopwords, question_type)
+    answer = baseline(qbow, sentences, stopwords, question)
     sent = " ".join(t[0] for t in answer)
     #print("answer:", " ".join(t[0] for t in answer))
     return(sent)
