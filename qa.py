@@ -123,7 +123,7 @@ LOC_PP = set(["in", "on", "at", "to"])
 
 def constituency_search(qtype, tree, qtree):
 
-    print("Entered Constituency Search, Type: ", qtype)
+    #print("Entered Constituency Search, Type: ", qtype)
     #print("\nTree of Question: ", qtree)
     #print("\nTree of selected Sentece: ", tree)
 
@@ -205,7 +205,8 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "when":
-        print(" *WHEN* not implemented\n")
+     #   print(" *WHEN* not implemented\n")
+        pass
 
     return None
 
@@ -263,18 +264,18 @@ def get_answer(question, story):
 
     sentences = get_sentences(stext)
 
-    print("*Getting best sentence for ", question['qid'])
+    #print("*Getting best sentence for ", question['qid'])
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-    print("Before Constituency Search: ", best_sent, "\n")
+    #print("Before Constituency Search: ", best_sent, "\n")
 
     sent_index = get_sentence_index(sentences, best_sent)
     cons_answer = None
     if sent_index is not None:
         cons_answer = constituency_search(question_type, stree[sent_index], qtree)
 
-    print("Consistency Search Results: ", cons_answer)
+    #print("Consistency Search Results: ", cons_answer)
     if cons_answer is None:
         answer = best_sent
         if answer is None:
@@ -282,20 +283,22 @@ def get_answer(question, story):
     else:
         answer = cons_answer
 
-    print("Final Answer: ", answer, "\n")
+    #print("Final Answer: ", answer, "\n")
 
     ###debugging tool to step through questions!
 
     #print("Press Any Key To Advance...")
+    stop = False
 
-    #try:
-     #   print("Exit with q")
-      #  quit = input()
-       # if quit is 'q':
-        #    exit()
-        #input("Press enter to continue")
-    #except SyntaxError:
-       # pass
+    if stop is True:
+        try:
+            print("Exit with q")
+            quit = input()
+            if quit is 'q':
+                exit()
+            input("Press enter to continue")
+        except SyntaxError:
+            pass
 
     ###     End of Your Code         ###
     return answer
@@ -313,7 +316,7 @@ class QAEngine(QABase):
 
 
 def run_qa(evaluate=False):
-    QA = QAEngine(evaluate=False)
+    QA = QAEngine(evaluate=True)
     QA.run()
     QA.save_answers()
 
