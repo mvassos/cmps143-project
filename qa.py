@@ -257,5 +257,5 @@ def main():
     # answers, or you can run score_answers.py
     score_answers()
 
-if __name__ == "__main__"
+if __name__ == "__main__":
     main()
