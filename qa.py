@@ -4,7 +4,6 @@ from qa_engine.score_answers import main as score_answers
 import nltk, operator
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
-STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
 
 def find_main(graph):
@@ -15,7 +14,11 @@ def find_main(graph):
     
 def find_node(word, graph):
     for node in graph.nodes.values():
-        if node["lemma"] == word["lemma"] or node["word"] == word["word"]:
+        # Lemmatizers don't work at its best so try to find a match by using
+        # lemmatized word with lemmatized graph word, word with graph word, or
+        # lemmatized word with graph word
+        if (node["lemma"] == word["lemma"] or node["word"] == word["word"]
+            or node["lemma"] == word["word"]):
             return node
     return None
     
@@ -29,10 +32,8 @@ def get_dependents(node, graph):
     return results
 
 
-def find_answer(qgraph, sgraph, q_type):
+def find_answer( qtext,qgraph, sgraph, q_type):
     qmain = find_main(qgraph)
-    print( qmain["word"] )
-    print( qmain["lemma"] )
     snode = find_node(qmain, sgraph)
     if snode is not None:
         for node in sgraph.nodes.values():
@@ -40,25 +41,47 @@ def find_answer(qgraph, sgraph, q_type):
                 if q_type == "Where":
                     if node['rel'] == "nmod":
                         deps = get_dependents(node, sgraph)
-                        deps = sorted(deps+[node], key=operator.itemgetter("address"))    
+                        deps = sorted(deps+[node], 
+                                      key=operator.itemgetter("address"))    
                         return " ".join(dep["word"] for dep in deps)
                 elif q_type == "Who":
                     if node['rel'] == "nsubj":
                         deps = get_dependents(node, sgraph)
-                        deps = sorted(deps+[node], key=operator.itemgetter("address"))    
+                        deps = sorted(deps+[node], 
+                                      key=operator.itemgetter("address"))    
                         return " ".join(dep["word"] for dep in deps)
     if ( q_type == "Who" ):  # who question main word not in sentence
-        q_list = []
-        for node in qgraph.nodes.values():
-            print( node["word"], node["rel"] )
-            q_list.append( node["word"] )
-        print( q_list )
-        subj_list = []
-        print( sgraph )
-        for node in sgraph.nodes.values():
-            if node["rel"] == "nsubj":
-                subj_list.append( node["word"] )
-        print( subj_list )
+        if "who is the story about?" in qtext.lower():
+            dep = []
+            # Get all the nouns in the sentence but avoid pronouns, except for I
+            # if its a narration
+            for node in sgraph.nodes.values():
+                if ((node["rel"] == "nsubj" and node["tag"] != "PRP") 
+                     or node["word"] == "I"):
+                    dep.append( node )
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        dep.append( sgraph.nodes[address] )
+            dep = sorted( dep, key=operator.itemgetter("address") )
+            return " ".join(t["word"] for t in dep)
+        else: 
+            # the main word in the question does not appear in the given answer
+            # sentence, try to find the solution by checking if a word from the 
+            # sentence is in the question, if that word's dependency revolves 
+            # around a nsubj, dobj, or has nmod relation return it and its 
+            # dependents
+            for node in sgraph.nodes.values():
+                key_word = find_node( node, qgraph ) # word in the question
+                if key_word is not None:
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        if (sgraph.nodes[address]["rel"] == "nsubj" or 
+                            sgraph.nodes[address]["rel"] == "dobj" or 
+                            sgraph.nodes[address]["rel"] == "nmod"):
+                            deps = get_dependents( sgraph.nodes[address],sgraph)
+                            deps = sorted(deps+[sgraph.nodes[address]], 
+                                          key=operator.itemgetter("address"))
+                            return " ".join(dep["word"] for dep in deps)
     return None
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
@@ -138,7 +161,6 @@ def baseline(qbow, qlemm, sentences, stopwords):
     best_answer = ( answers[0][1], answers[0][2] )
     return best_answer
 
-
 def get_answer(question, story):
     """
     :param question: dict
@@ -176,14 +198,16 @@ def get_answer(question, story):
         stext = story["text"]
     qtext = question["text"]
     qlemm = get_lemmatized(get_sentences(qtext)[0])
-    qbow = get_bow(get_sentences(qtext)[0], STOPWORDS)
-    print( question['qid'] )
-#    print("question: ", qtext)
-#    print("question bow: ", qbow)
-#    print("lemmatized version: ", qlemm)
+
+
+    stopwords = set(nltk.corpus.stopwords.words("english"))
+    moreStopWords = set([",", "."])
+    stopwords = stopwords.union(moreStopWords)
+
+    qbow = get_bow(get_sentences(qtext)[0], stopwords)
 
     sentences = get_sentences(stext)
-    answer = baseline(qbow, qlemm, sentences, STOPWORDS)
+    answer = baseline(qbow, qlemm, sentences, stopwords)
 
     answer_graph = ""
     if question['type'] == 'Sch':
@@ -192,16 +216,12 @@ def get_answer(question, story):
         answer_graph = story["story_dep"][answer[1]]
 
     q_type = qtext.split(" ")[0]
-    if ( q_type == "Who" ):
-        print( qtext )
-    sub_answer = find_answer( question["dep"], answer_graph, q_type )
+    # Answer before this call returns a sentence that most likely has an answer
+    # to it. Now try to find the answer inside of the sentence (For precision)
+    sub_answer = find_answer( qtext, question["dep"], answer_graph, q_type )
     if sub_answer is not None:
-        print( sub_answer )
-        print("----------------------------------------------")
         return sub_answer
-    if ( q_type == "Who" ):
-        print("answer:", " ".join(t[0] for t in answer[0]))
-    print("----------------------------------------------")
+    # No better solution, return the entire sentence
     answer = " ".join(t[0] for t in answer[0])
 
     ###     End of Your Code         ###
@@ -232,10 +252,10 @@ def main():
     # not you want to run your system on the evaluation
     # data. Evaluation data predictions will be saved
     # to hw6-eval-responses.tsv in the working directory.
-    run_qa(evaluate=False)
+    run_qa(evaluate=True)
     # You can uncomment this next line to evaluate your
     # answers, or you can run score_answers.py
     score_answers()
 
-if __name__ == "__main__":
+if __name__ == "__main__"
     main()
