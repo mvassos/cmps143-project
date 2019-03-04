@@ -1,7 +1,7 @@
 answer	qid
 The mouse began to be extremely frightened and piteously entreated the lion to spare it .	fables-06-1
 A Lion asleep in his lair was waked up by a Mouse running over his face .	fables-06-2
-The idea of so insignificant a creature ever being able to do anything for him amused the Lion so much that he laughed aloud , and good-humouredly let it go .	fables-06-3
+him	fables-06-3
 One day the Lion got entangled in a net which had been spread for game by some hunters , and the Mouse heard and recognised his roars of anger and ran to the spot .	fables-06-4
 the Lion	fables-06-5
 The lion awaked because a mouse ran into the face of the lion .	fables-06-6
@@ -21,15 +21,15 @@ The lion	fables-06-19
 The lion awaked because a mouse ran into the face of the lion .	fables-06-20
 The lion lost temper and seized the mouse with the paw of the lion .	fables-06-21
 The lion lost temper and seized the mouse with the paw of the lion .	fables-06-22
-Without more ado it set to work to gnaw the ropes with its teeth , and succeeded before long in setting the Lion free .	fables-06-23
+it	fables-06-23
 Without more ado it set to work to gnaw the ropes with its teeth , and succeeded before long in setting the Lion free .	fables-06-24
 mouse	fables-06-25
 The lion awaked because a mouse ran into the face of the lion .	fables-06-26
 The lion lost temper and seized the mouse with the paw of the lion .	fables-06-27
 The lion awaked because a mouse ran into the face of the lion .	fables-06-28
 Louisiana was adversely affected by Hurricane Gustav .	blogs-03-1
-The storm rolled in on Monday , September 1 , in the morning .	blogs-03-2
-Winds started kicking up .	blogs-03-3
+The storm	blogs-03-2
+Winds	blogs-03-3
 President Bush	blogs-03-4
 Louisiana	blogs-03-5
 The narrator went back to a store named Home Depot in order to purchase a portable generator .	blogs-03-6
@@ -42,29 +42,29 @@ The tree split apart and fell on the yard of a neighbor .	blogs-03-12
 The narrator	blogs-03-13
 The narrator began to be concerned because -- if the first tree were to later fall , and were to later fall on the house of the narrator -- the house of the narrator would have begun to be damaged , and the family of the narrator would begin to be wounded .	blogs-03-14
 My wife children	blogs-03-15
-The group of power lines began to be down over a city , and the fourth tree began to be down over the city .	blogs-03-16
+The group of power lines	blogs-03-16
 Once , storm was occurring in Louisiana .	blogs-03-17
 The narrator went back to a store named Home Depot in order to purchase a portable generator .	blogs-03-18
 The narrator began to be nervous because it owned a group of trees and near the house of the narrator .	blogs-03-19
 The narrator	blogs-03-20
-An oven broke because the broiler of the oven activated .	blogs-06-1
+An oven	blogs-06-1
 An oven broke because the broiler of the oven activated .	blogs-06-2
 The husband of the narrator	blogs-06-3
-The husband of the narrator quickly shut the door of the oven in order to prevent the fire spreading .	blogs-06-4
+The husband of the narrator	blogs-06-4
 we	blogs-06-5
-The oven malfunctioned ... it was supposed to be baking at 350 degrees but somehow broiler came on and got stuck ? ? ...	blogs-06-6
+The oven	blogs-06-6
 I ran and got a fire extinguisher .	blogs-06-7
 Luckily the fire extinguisher worked but our stove was toast .	blogs-06-8
 Since then we have been using a plug-in burner , griddle , and counter top oven .	blogs-06-9
 The oven began to be broken , and the fire extinguisher eliminated the fire .	blogs-06-10
 The fire ascended to the ceiling of the house .	blogs-06-11
-The fire ascended to the ceiling of the house .	blogs-06-12
+The fire	blogs-06-12
 The husband of the narrator quickly shut the door of the oven in order to prevent the fire spreading .	blogs-06-13
 So excited about my new range I ordered a few days ago .	blogs-06-14
 my husband went to get a batch of cookies and found them in flames .	blogs-06-15
 The oven scorched a group of treats and created some fire .	blogs-06-16
 The husband of the narrator	blogs-06-17
-An oven broke because the broiler of the oven activated .	blogs-06-18
+An oven	blogs-06-18
 So excited about my new range I ordered a few days ago .	blogs-06-19
 Nothing got damaged besides the range but it took days of airing the house out and cleaning before things were 100 % back to normal .	blogs-06-20
 The husband of the narrator quickly shut the door of the oven in order to prevent the fire spreading .	blogs-06-21
@@ -140,13 +140,13 @@ in a flat and large dish	fables-04-3
 The fox that	fables-04-4
 A Fox invited a Stork to dinner , at which the only fare provided was a large flat dish of soup .	fables-04-5
 The fox began to be hungry and began to be helpless because he was n't able to reach some food that was in the pitcher .	fables-04-6
-The stork easily fitted the long bill of the stork into the long and narrow neck of the pitcher .	fables-04-7
+The stork	fables-04-7
 Thus , while she enjoyed her dinner , the Fox sat by hungry and helpless , for it was impossible for him to reach the tempting contents of the vessel .	fables-04-8
 A Fox invited a Stork to dinner , at which the only fare provided was a large flat dish of soup .	fables-04-9
 The stork	fables-04-10
 The stork easily fitted the long bill of the stork into the long and narrow neck of the pitcher .	fables-04-11
 A clever fox invited a stork to dine .	fables-04-12
-The fox only served some soup in a flat and large dish .	fables-04-13
+The fox	fables-04-13
 some savory broth	fables-04-14
 some savory broth	fables-04-15
 The fox only served some soup in a flat and large dish .	fables-04-16
@@ -209,7 +209,7 @@ that	blogs-02-19
 The narrator stayed with the young man and did n't aid him because the young man had broken the neck of the young man .	blogs-02-20
 The squirrel	blogs-04-1
 The squirrel	blogs-04-2
-The squirrel 's paw slipped off the deck 's railing .	blogs-04-3
+The squirrel 's paw	blogs-04-3
 The birds bathed themselves in the bowl .	blogs-04-4
 Squirrels	blogs-04-5
 I	blogs-04-6
@@ -259,7 +259,7 @@ Will heard it start to thunder .	mc500.train.111.2
 It stopped raining and Will walked all the way to the store .	mc500.train.111.3
 to the living room	mc500.train.111.4
 She went to Miami to visit some friends .	mc500.train.0.1
-Ellen ordered a salad .	mc500.train.0.2
+Ellen	mc500.train.0.2
 Kristin had soup .	mc500.train.0.3
 She traveled from Atlanta .	mc500.train.0.4
 Alyssa was happy to spend time with her friends again .	mc500.train.0.5
@@ -270,7 +270,7 @@ Alyssa enjoyed the restaurant 's special .	mc500.train.0.9
 After eating , the ladies went back to Ellen 's house to have fun .	mc500.train.0.10
 to a restaurant	mc500.train.0.11
 at Ellen 's house	mc500.train.0.12
-Ellen greeted Alyssa and they both had some lemonade to drink .	mc500.train.0.13
+they both	mc500.train.0.13
 Alyssa got to the beach after a long trip .	mc500.train.0.14
 Alyssa called her friends Kristin and Rachel to meet at Ellen 's house .	mc500.train.0.15
 After going swimming and laying out , she went to her friend Ellen 's house .	mc500.train.0.16
@@ -284,7 +284,7 @@ outside the window	mc500.train.23.3
 Andrew looked outside the window and saw the newspaper by the door .	mc500.train.23.4
 On the front	mc500.train.23.5
 He had been watching TV all day .	mc500.train.23.6
-Andrew and his dad read the story .	mc500.train.23.7
+Andrew and his dad	mc500.train.23.7
 Andrew had never been to the circus .	mc500.train.23.8
 Andrew had never been to the circus .	mc500.train.23.9
 `` Yes , we can , ' Andrew 's dad said , 'but first you need to feed your goldfish . ''	mc500.train.23.10
@@ -293,7 +293,7 @@ Andrew and his dad read the story .	mc500.train.23.12
 of fun	mc500.train.23.13
 to the circus	mc500.train.23.14
 The elephant even went down a slide !	mc500.train.23.15
-Andrew 's dad said , `` I think the newspaper is here .	mc500.train.23.16
+Andrew 's dad	mc500.train.23.16
 Andrew 's dad said , `` I think the newspaper is here .	mc500.train.23.17
 The elephant	mc500.train.23.18
 The people and animals at the circus did lots of tricks .	mc500.train.23.19
@@ -307,7 +307,7 @@ Kelly woke up one morning and went outside to her back yard .	mc500.train.18.2
 Kelly woke up one morning and went outside to her back yard .	mc500.train.18.3
 She was going to give her mom the biggest , most beautiful bunch of flowers her mother had ever seen .	mc500.train.18.4
 Kelly woke up one morning and went outside to her back yard .	mc500.train.18.5
-After Kelly collected all of the flowers , she went inside and tied them together with string .	mc500.train.18.6
+Kelly	mc500.train.18.6
 She knew where the best flowers were in her yard .	mc500.train.18.7
 After Kelly collected all of the flowers , she went inside and tied them together with string .	mc500.train.18.8
 She was in a hurry because it was Mother 's Day and she had to collect flowers before her mom woke up to give to her as a present .	mc500.train.18.9
@@ -317,7 +317,7 @@ She was in a hurry because it was Mother 's Day and she had to collect flowers b
 The red ones were big , the orange ones were small , and the green ones were in the middle .	mc500.train.18.13
 Kelly was worried , so she hid them in a new spot that was up higher .	mc500.train.18.14
 Her mother 's favorite was the red one .	mc500.train.18.15
-Finally , her mother woke up at 8:30 AM , and Kelly was excited !	mc500.train.18.16
+her mother	mc500.train.18.16
 After Kelly collected all of the flowers , she went inside and tied them together with string .	mc500.train.18.17
 She was in a hurry because it was Mother 's Day and she had to collect flowers before her mom woke up to give to her as a present .	mc500.train.18.18
 She hoped her baby sister Morgan , who was still in diapers , would n't find the flowers and eat them .	mc500.train.18.19

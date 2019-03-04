@@ -18,7 +18,7 @@ def find_node(word, graph):
         # lemmatized word with lemmatized graph word, word with graph word, or
         # lemmatized word with graph word
         if (node["lemma"] == word["lemma"] or node["word"] == word["word"]
-            or node["lemma"] == word["word"]):
+            or (node["lemma"] is not None and word["word"] in node["lemma"])):
             return node
     return None
     
@@ -31,21 +31,45 @@ def get_dependents(node, graph):
         results = results + get_dependents(dep, graph)
     return results
 
+def what_answer( qgraph, sgraph ):
+    qmain = find_main(qgraph)
+    snode = find_node(qmain, sgraph)
+    if snode is not None:
+        print( qmain["word"] )
+        print( snode )
+        print( "Snode: ",snode["word"] )
+        print( sgraph )
+        if snode["tag"] == "VBN" or snode["tag"] == "VBD":
+            for item in snode["deps"]:
+                    address = snode["deps"][item][0]
+                    if (sgraph.nodes[address]["tag"] == "NNS" or 
+                        sgraph.nodes[address]["tag"] == "NNP" or
+                        sgraph.nodes[address]["tag"] == "NN"):
+                        deps = get_dependents( sgraph.nodes[address],sgraph)
+                        deps = sorted(deps+[sgraph.nodes[address]], 
+                                      key=operator.itemgetter("address"))
+                        return " ".join(dep["word"] for dep in deps)
+    return None
+
 
 def find_answer( qtext,qgraph, sgraph, q_type):
     qmain = find_main(qgraph)
     snode = find_node(qmain, sgraph)
     if snode is not None:
+        if q_type == "What":
+            print( qmain["word"] )
+            print( snode["word"] )
+            print( sgraph )
         for node in sgraph.nodes.values():
             if node.get( 'head', None ) is not None:
-                if q_type == "Where":
-                    if node['rel'] == "nmod":
+                if q_type == "Who":
+                    if node['rel'] == "nsubj":
                         deps = get_dependents(node, sgraph)
                         deps = sorted(deps+[node], 
                                       key=operator.itemgetter("address"))    
                         return " ".join(dep["word"] for dep in deps)
-                elif q_type == "Who":
-                    if node['rel'] == "nsubj":
+                elif q_type == "Where":
+                    if node['rel'] == "nmod":
                         deps = get_dependents(node, sgraph)
                         deps = sorted(deps+[node], 
                                       key=operator.itemgetter("address"))    
@@ -121,9 +145,6 @@ def get_lemmatized(tagged_tokens):
     del lemmas[-1]
 
     return set(lemmas)
-
-def question_restatement(tagged_tokens):
-    return None
 
 
 def find_phrase(tagged_tokens, qbow):
@@ -216,14 +237,28 @@ def get_answer(question, story):
         answer_graph = story["story_dep"][answer[1]]
 
     q_type = qtext.split(" ")[0]
+    if q_type == "What":
+        print( question["qid"] )
+        print( qtext )
     # Answer before this call returns a sentence that most likely has an answer
     # to it. Now try to find the answer inside of the sentence (For precision)
-    sub_answer = find_answer( qtext, question["dep"], answer_graph, q_type )
+    sub_answer = None
+    if q_type != "What":
+        sub_answer = find_answer( qtext, question["dep"], answer_graph, q_type )
+    else:
+        sub_answer = what_answer( question["dep"], answer_graph )
     if sub_answer is not None:
+        if q_type == "What":
+            answer = " ".join(t[0] for t in answer[0])
+            print( answer )
+            print( sub_answer )
+            print( "--------------------------------------------" )
         return sub_answer
     # No better solution, return the entire sentence
     answer = " ".join(t[0] for t in answer[0])
-
+    if q_type == "What":
+        print( answer )
+        print( "--------------------------------------------" )
     ###     End of Your Code         ###
     return answer
 
@@ -252,7 +287,7 @@ def main():
     # not you want to run your system on the evaluation
     # data. Evaluation data predictions will be saved
     # to hw6-eval-responses.tsv in the working directory.
-    run_qa(evaluate=True)
+    run_qa(evaluate=False)
     # You can uncomment this next line to evaluate your
     # answers, or you can run score_answers.py
     score_answers()
