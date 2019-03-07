@@ -1,13 +1,13 @@
 import pandas as pd
 import nltk, argparse
 import numpy as np
+from qa_engine.base import QABase
+driver = QABase()
 
 def score_all_answers(gold, pred):
     all_scores = {"p": [], "r": [], "f": []}
     for row in gold.itertuples():
 
-        print("-"*40)
-        print("\nSCORING {}\n".format(row.Index))
 
         golds = row.answer.lower().split("|")
         scores = {"p": [], "r": [], "f": []}
@@ -38,6 +38,13 @@ def score_all_answers(gold, pred):
 
         best = np.argmax(scores["f"])
         best_gold = golds[best]
+
+        if(scores["r"][best] == 1):
+            #continue
+            pass
+        print("-"*40)
+        q = driver.get_question(row.Index)["text"]
+        print("\nSCORING {}\n".format(row.Index), q)
 
         print('Comparing Gold   "{}"\n      and Resp   "{}"'.format(best_gold, pred_answer.answer))
         all_scores["p"].append(scores["p"][best])

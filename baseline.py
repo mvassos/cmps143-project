@@ -167,6 +167,7 @@ def toPresentTense(word):
         "gave": "give",
         "hid":"hide",
         "got": "get",
+        "stood": "stand",
     }
     if word in translations:
         return translations[word]
