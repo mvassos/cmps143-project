@@ -316,7 +316,7 @@ class QAEngine(QABase):
 
 
 def run_qa(evaluate=False):
-    QA = QAEngine(evaluate=True)
+    QA = QAEngine(evaluate=evaluate)
     QA.run()
     QA.save_answers()
 
@@ -328,7 +328,7 @@ def main():
     # not you want to run your system on the evaluation
     # data. Evaluation data predictions will be saved
     # to hw6-eval-responses.tsv in the working directory.
-    run_qa(evaluate=True)
+    run_qa(evaluate=False)
     # You can uncomment this next line to evaluate your
     # answers, or you can run score_answers.py
     score_answers()
