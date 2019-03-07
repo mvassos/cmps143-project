@@ -27,7 +27,7 @@ def get_sentences(text):
     return sentences    
 
 def get_bow(tagged_tokens, stopwords):
-    s1 = set([porterrrr.stem(t[0]).lower() for t in tagged_tokens if t[0].lower() not in stopwords])
+    s1 = set([toPresentTense(porterrrr.stem(t[0]).lower()) for t in tagged_tokens if t[0].lower() not in stopwords])
     s2 = set([t[0].lower() for t in tagged_tokens if t[0].lower() not in stopwords])
     superset =  s1.union(s2)
     #print(superset)
@@ -54,6 +54,8 @@ def baseline(qbow, sentences, stopwords, question):
         
         # Count the # of overlapping words between the Q and the A
         # & is the set intersection operator
+        print("QBOW: ", qbow)
+        print("SBOW: ", sbow)
         overlap = len(qbow & sbow)
         answers.append((overlap, sent))
 
@@ -65,6 +67,9 @@ def baseline(qbow, sentences, stopwords, question):
     best_answer =  None
 
     bestNounCount = [0,None]
+
+    foundHighPriorityLocation = False
+
     for a in reversed(answers[0:3]):
 
 
@@ -81,21 +86,29 @@ def baseline(qbow, sentences, stopwords, question):
 
         answer = a[1]
         sent = " ".join(t[0] for t in answer)
-        
         if debug: print("score: ",a[0], " ", sent)
         #try some wizard magic
 
         if(type == "Where"):
-            locations = ['in', 'along', 'on', 'under', 'near', 'at', 'in front of']
+            locations = ['in', 'upon', 'inside', 'along', 'on', 'to the', 'under', 'near', 'at', 'in front of', 'by the', 'house', 'to']
+            superLocations = [" " + l + " " for l in locations] + ["," + l +" " for l in locations]
+            for l in superLocations:
+                if l in sent:
+                    best_answer = a[1]
+                    foundHighPriorityLocation = True
+                    print("HPL: ", l)
             for l in locations:
-                if l in sent: best_answer = a[1]
-
+                if l in sent and not foundHighPriorityLocation:
+                    best_answer = a[1]
+                    print("LPL: ", l)
         if(type == "What"):
             #print(qbow)
 
             if debug: print("QUESTION: ", q_sents[0])
             if debug: print("SUBJECT: ", subj)
             if verb is not None:
+                if verb == "did":
+                    print("VERB IS DID!!")
                 if(verb in sent):
                     pass
                     #best_answer = a[1]
@@ -124,7 +137,10 @@ def baseline(qbow, sentences, stopwords, question):
                     bestNounCount[1] = a[1]
 
         if(type == "Why"):
-
+            reasons = ["because"]
+            for r in reasons:
+                if r in sent:
+                    best_answer = a[1]
             pass
 
     #for "who was the story about" case
@@ -135,6 +151,29 @@ def baseline(qbow, sentences, stopwords, question):
     if(best_answer == None):
         best_answer = (answers[0])[1]
     return best_answer
+
+#nltk sucks
+def toPresentTense(word):
+    translations = {
+        "felt": "feel",
+        "ate": "eat",
+        "mother": "mom",
+        "freed": "free",
+        "brought": "bring",
+        "hid": "hide",
+        "fell": "fall",
+        "spat": "spit",
+        "went": "go",
+        "gave": "give",
+        "hid":"hide",
+        "got": "get",
+    }
+    if word in translations:
+        return translations[word]
+    else:
+        return word
+
+
 
 def get_the_right_sentence_maybe(question_id):
     
@@ -147,16 +186,18 @@ def get_the_right_sentence_maybe(question_id):
     question = q["text"]
     if debug: print("question:", question)
     stopwords = set(nltk.corpus.stopwords.words("english"))
-    moreStopWords = set([",", "."])
+    moreStopWords = set([",", ".", "?"])
     stopwords = stopwords.union(moreStopWords)
 
     qbow = get_bow(get_sentences(question)[0], stopwords)
     sentences = get_sentences(text)
 
+    if debug: print("BASELINE FOR QUESTION: ", question_id)
+
     answer = baseline(qbow, sentences, stopwords, question)
     sent = " ".join(t[0] for t in answer)
     #print("answer:", " ".join(t[0] for t in answer))
-    return(sent)
+    return sent
 
 if __name__ == '__main__':
     question_id = "fables-01-2"
