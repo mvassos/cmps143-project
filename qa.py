@@ -1,9 +1,10 @@
-
+import csv
 from qa_engine.base import QABase
 from qa_engine.score_answers import main as score_answers
 import nltk, operator, re, sys
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import wordnet
+from collections import defaultdict
 
 porterrrr = nltk.PorterStemmer()
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
@@ -115,17 +116,58 @@ def pattern_matcher(pattern, tree):
             return node
     return None
 
+##HELPER FUNCTION FROM WORDNET DEMO.PY##
+
+def load_wordnet_ids(filename):
+    file = open(filename, 'r')
+    if "noun" in filename: type = "noun"
+    else: type = "verb"
+    csvreader = csv.DictReader(file, delimiter=",", quotechar='"')
+    word_ids = defaultdict()
+    for line in csvreader:
+        word_ids[line['synset_id']] = {'synset_offset': line['synset_offset'], 'story_'+type: line['story_'+type], 'stories': line['stories']}
+    return word_ids
+
+###NEW FUNCTION TO MANIPULATE "HARD" QUESTIONS###
+####NOT IMPLEMENTED FULLY YET, NOT SURE IF EVEN NECESARRY####
+
+def rephrase_hard(question, nouns, verbs):
+    print("tagged question: ", question)
+    print("Story nouns: ", nouns)
+    print("Story verbs: ", verbs)
+
+    for (word, tag) in question[0]:
+        if tag[:1] == 'V':
+            if word not in STOPWORDS and word not in verbs:
+                print("unique verb found: ", word)
+                verb_synsets = wordnet.synsets(word)
+
+                for synset in verb_synsets:
+                    verb_hypo = synset.hyponyms()
+                    for hypo in verb_hypo:
+                        print("hypo: ", hypo.name()[0:hypo.name().index(".")])
+
+            pass
+        elif tag[:1] == 'N':
+            print("noun found: ", word)
+            pass
+
+
+    pass
+
+
 ###END OF CONSTITUENCY FUNCTIONS###
 
 ###NEW CONSTITUENCY FUNCTIONS: Manny Vassos###
 
 LOC_PP = set(["in", "on", "at", "to"])
 
+
 def constituency_search(qtype, tree, qtree):
 
-    #print("Entered Constituency Search, Type: ", qtype)
+    #print("Question Type: ", qtype)
     #print("\nTree of Question: ", qtree)
-    #print("\nTree of selected Sentece: ", tree)
+    #print("\nTree of selected Sentence: ", tree)
 
 
     qtype = qtype.lower()
@@ -196,6 +238,10 @@ def constituency_search(qtype, tree, qtree):
         pattern = nltk.ParentedTree.fromstring("(VP (*) (NP))")
         subtree = pattern_matcher(pattern, tree)
 
+        if subtree is not None:
+            pattern = nltk.ParentedTree.fromstring("(NP)")
+            subtree = pattern_matcher(pattern, subtree)
+
         if subtree is None:
             pattern = nltk.ParentedTree.fromstring("(NP)")
             subtree = pattern_matcher(pattern, tree)
@@ -205,7 +251,18 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "when":
-     #   print(" *WHEN* not implemented\n")
+        #   print(" *WHEN* not implemented\n")
+        pattern = nltk.ParentedTree.fromstring("(NP-TMP)")
+        subtree = pattern_matcher(pattern, tree)
+
+        if subtree is None:
+            pattern = nltk.ParentedTree.fromstring("(ADVP (*) (RB))")
+            subtree = pattern_matcher(pattern, tree)
+
+        if subtree is not None:
+            return (" ".join(subtree.leaves()))
+
+
         pass
 
     return None
@@ -246,6 +303,9 @@ def get_answer(question, story):
     """
     ###     Your Code Goes Here         ###
 
+    story_id = question['sid']
+    #print(story_id)
+
     if question['type'] == 'Sch':
         stext = story['sch']
         stree = story['sch_par']
@@ -255,20 +315,43 @@ def get_answer(question, story):
 
     qtext = question["text"]
     qtree = question['par']
+    qdiff = question['difficulty']
 
     question_type = get_sentences(qtext)[0][0][0]
 
-    #print("question: ", qtext)
-    #print("question bow: ", qbow)
-    #print("lemmatized version: ", qlemm)
+    print("\nQuestion: ", qtext)
+    print("ID: ", question['qid'])
+    print("Difficulty: ", qdiff)
 
+    qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
 
-    #print("*Getting best sentence for ", question['qid'])
+    #Ignore for now, not sure if wordnet is going to be necesarry for Hard questions with our current Baseline#
+    if(qdiff == 'Hard'):
+        #print("###### hard question #######")
+        DATA_DIR = "./wordnet"
+        noun_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_nouns.csv"))
+        verb_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_verbs.csv"))
+
+        nouns = []
+        verbs = []
+
+        # iterate through dictionary
+        for synset_id, items in noun_ids.items():
+            stories = items['stories']
+            if story_id in stories:
+                nouns.append(items['story_noun'])
+
+        for synset_id, items in verb_ids.items():
+            stories = items['stories']
+            if story_id in stories:
+                verbs.append(items['story_verb'])
+
+        #rephrase_hard(qsentence, nouns, verbs)
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-    #print("Before Constituency Search: ", best_sent, "\n")
+    print("\nSentence Selected: ", best_sent, "\n")
 
     sent_index = get_sentence_index(sentences, best_sent)
     cons_answer = None
@@ -283,20 +366,23 @@ def get_answer(question, story):
     else:
         answer = cons_answer
 
-    #print("Final Answer: ", answer, "\n")
+    print("Final Answer: ", answer, "\n")
 
     ###debugging tool to step through questions!
-
-    #print("Press Any Key To Advance...")
     stop = False
+
+    ###change for specific debugging aproach
+    if qdiff == "Hard":
+        stop = False
+
 
     if stop is True:
         try:
-            print("Exit with q")
+            print("Exit with q\nContinue with any other key...")
             quit = input()
             if quit is 'q':
                 exit()
-            input("Press enter to continue")
+
         except SyntaxError:
             pass
 
