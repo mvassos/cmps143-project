@@ -36,9 +36,10 @@ def find_answer(qgraph, sgraph):
     for node in sgraph.nodes.values():
         #print("node[head]=", node["head"])
         if node.get('head', None) == snode["address"]:
-            #print(node["word"], node["rel"])
+            print(node["word"], node["rel"])
 
             if node['rel'] == "nmod":
+                print( node["word"] )
                 deps = get_dependents(node, sgraph)
                 deps = sorted(deps+[node], key=operator.itemgetter("address"))
                 return " ".join(dep["word"] for dep in deps)
@@ -58,7 +59,6 @@ if __name__ == '__main__':
     # The answer is in the second sentence
     # You would have to figure this out like in the chunking demo
     sgraph = story["sch_dep"][1]
-
     
     lmtzr = WordNetLemmatizer()
     for node in sgraph.nodes.values():

@@ -35,20 +35,14 @@ def what_answer( qgraph, sgraph ):
     qmain = find_main(qgraph)
     snode = find_node(qmain, sgraph)
     if snode is not None:
-        print( qmain["word"] )
-        print( snode )
-        print( "Snode: ",snode["word"] )
-        print( sgraph )
-        if snode["tag"] == "VBN" or snode["tag"] == "VBD":
+        if snode["tag"].startswith('V'):
             for item in snode["deps"]:
-                    address = snode["deps"][item][0]
-                    if (sgraph.nodes[address]["tag"] == "NNS" or 
-                        sgraph.nodes[address]["tag"] == "NNP" or
-                        sgraph.nodes[address]["tag"] == "NN"):
-                        deps = get_dependents( sgraph.nodes[address],sgraph)
-                        deps = sorted(deps+[sgraph.nodes[address]], 
-                                      key=operator.itemgetter("address"))
-                        return " ".join(dep["word"] for dep in deps)
+                address = snode["deps"][item][0]
+                if (sgraph.nodes[address]["tag"].startswith('N')):
+                    deps = get_dependents( sgraph.nodes[address],sgraph)
+                    deps = sorted(deps+[sgraph.nodes[address]], 
+                                  key=operator.itemgetter("address"))
+                    return " ".join(dep["word"] for dep in deps)
     return None
 
 
@@ -56,7 +50,7 @@ def find_answer( qtext,qgraph, sgraph, q_type):
     qmain = find_main(qgraph)
     snode = find_node(qmain, sgraph)
     if snode is not None:
-        if q_type == "What":
+        if q_type == "Where":
             print( qmain["word"] )
             print( snode["word"] )
             print( sgraph )
@@ -69,11 +63,12 @@ def find_answer( qtext,qgraph, sgraph, q_type):
                                       key=operator.itemgetter("address"))    
                         return " ".join(dep["word"] for dep in deps)
                 elif q_type == "Where":
-                    if node['rel'] == "nmod":
-                        deps = get_dependents(node, sgraph)
-                        deps = sorted(deps+[node], 
-                                      key=operator.itemgetter("address"))    
-                        return " ".join(dep["word"] for dep in deps)
+                    if node.get('head', None) == snode["address"]:
+                        if node['rel'] == "nmod":
+                            deps = get_dependents(node, sgraph)
+                            deps = sorted(deps+[node], 
+                                          key=operator.itemgetter("address"))    
+                            return " ".join(dep["word"] for dep in deps)
     if ( q_type == "Who" ):  # who question main word not in sentence
         if "who is the story about?" in qtext.lower():
             dep = []
@@ -237,7 +232,7 @@ def get_answer(question, story):
         answer_graph = story["story_dep"][answer[1]]
 
     q_type = qtext.split(" ")[0]
-    if q_type == "What":
+    if q_type == "Where":
         print( question["qid"] )
         print( qtext )
     # Answer before this call returns a sentence that most likely has an answer
@@ -248,7 +243,7 @@ def get_answer(question, story):
     else:
         sub_answer = what_answer( question["dep"], answer_graph )
     if sub_answer is not None:
-        if q_type == "What":
+        if q_type == "Where":
             answer = " ".join(t[0] for t in answer[0])
             print( answer )
             print( sub_answer )
@@ -256,7 +251,7 @@ def get_answer(question, story):
         return sub_answer
     # No better solution, return the entire sentence
     answer = " ".join(t[0] for t in answer[0])
-    if q_type == "What":
+    if q_type == "Where":
         print( answer )
         print( "--------------------------------------------" )
     ###     End of Your Code         ###
