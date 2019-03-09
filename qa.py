@@ -11,6 +11,83 @@ STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
 from baseline import get_the_right_sentence_maybe
 
+def find_main(graph):
+    for node in graph.nodes.values():
+        if node['rel'] == 'root':
+            return node
+    return None
+    
+def find_node(word, graph):
+    for node in graph.nodes.values():
+        # Lemmatizers don't work at its best so try to find a match by using
+        # lemmatized word with lemmatized graph word, word with graph word, or
+        # lemmatized word with graph word
+        if (node["lemma"] == word["lemma"] or node["word"] == word["word"]
+            or (node["lemma"] is not None and word["word"] in node["lemma"])):
+            return node
+    return None
+    
+def get_dependents(node, graph):
+    results = []
+    for item in node["deps"]:
+        address = node["deps"][item][0]
+        dep = graph.nodes[address]
+        results.append(dep)
+        results = results + get_dependents(dep, graph)
+    return results
+
+def find_who_answer( qtext, qgraph, sgraph):
+    qmain = find_main(qgraph)
+    snode = find_node(qmain, sgraph)
+    if snode is not None:
+    	for item in snode["deps"]:
+    		address = snode["deps"][item][0]
+    		if ( sgraph.nodes[address]["rel"] in "nsubjpass" ):
+    			deps = get_dependents( sgraph.nodes[address], sgraph )
+    			deps = sorted( deps+[sgraph.nodes[address]], 
+    						   key=operator.itemgetter("address") )
+    			return " ".join( dep["word"] for dep in deps )
+    	for node in sgraph.nodes.values():
+            if node.get( 'head', None ) is not None:
+                if node['rel'] == "nsubj":
+                    deps = get_dependents(node, sgraph)
+                    deps = sorted(deps+[node], 
+                                  key=operator.itemgetter("address"))
+                    return " ".join(dep["word"] for dep in deps)
+    else: # who question main word not in sentence
+        if "who is the story about?" in qtext.lower():
+            dep = []
+            # Get all the nouns in the sentence but avoid pronouns, except for I
+            # if its a narration
+            for node in sgraph.nodes.values():
+                if (( (node["rel"] is not None and node["rel"] in "nsubjpass" 
+                    and node["tag"] != "PRP")) or node["word"] == "I"):
+                    dep.append( node )
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        dep.append( sgraph.nodes[address] )
+            dep = sorted( dep, key=operator.itemgetter("address") )
+            return " ".join(t["word"] for t in dep)
+        else: 
+            # the main word in the question does not appear in the given answer
+            # sentence, try to find the solution by checking if a word from the 
+            # sentence is in the question, if that word's dependency revolves 
+            # around a nsubj, dobj, or has nmod relation return it and its 
+            # dependents
+            for node in sgraph.nodes.values():
+                key_word = find_node( node, qgraph ) # word in the question
+                if key_word is not None:
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        if (sgraph.nodes[address]["rel"] in "nsubjpass" or 
+                            sgraph.nodes[address]["rel"] == "dobj" or 
+                            sgraph.nodes[address]["rel"] == "nmod"):
+                            deps = get_dependents( sgraph.nodes[address],sgraph)
+                            deps = sorted(deps+[sgraph.nodes[address]], 
+                                          key=operator.itemgetter("address"))
+                            return " ".join(dep["word"] for dep in deps)
+    return None
+
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
@@ -319,9 +396,9 @@ def get_answer(question, story):
 
     question_type = get_sentences(qtext)[0][0][0]
 
-    print("\nQuestion: ", qtext)
-    print("ID: ", question['qid'])
-    print("Difficulty: ", qdiff)
+#    print("\nQuestion: ", qtext)
+#    print("ID: ", question['qid'])
+#    print("Difficulty: ", qdiff)
 
     qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
@@ -351,22 +428,30 @@ def get_answer(question, story):
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-    print("\nSentence Selected: ", best_sent, "\n")
+#    print("\nSentence Selected: ", best_sent, "\n")
 
     sent_index = get_sentence_index(sentences, best_sent)
-    cons_answer = None
+    sub_answer = None
     if sent_index is not None:
-        cons_answer = constituency_search(question_type, stree[sent_index], qtree)
+    	if question_type == "Who":
+    		answer_dep = []
+    		if question["type"] == "Sch":
+    			answer_dep = story["sch_dep"][sent_index]
+    		else:
+    			answer_dep = story["story_dep"][sent_index]
+    		sub_answer = find_who_answer( qtext, question["dep"], answer_dep)
+    	else:
+        	sub_answer = constituency_search(question_type, stree[sent_index], qtree)
 
     #print("Consistency Search Results: ", cons_answer)
-    if cons_answer is None:
+    if sub_answer is None:
         answer = best_sent
         if answer is None:
             answer = "the best guess"
     else:
-        answer = cons_answer
+        answer = sub_answer
 
-    print("Final Answer: ", answer, "\n")
+#    print("Final Answer: ", answer, "\n")
 
     ###debugging tool to step through questions!
     stop = False
