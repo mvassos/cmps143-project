@@ -129,7 +129,6 @@ def load_wordnet_ids(filename):
     return word_ids
 
 ###NEW FUNCTION TO MANIPULATE "HARD" QUESTIONS###
-####NOT IMPLEMENTED FULLY YET, NOT SURE IF EVEN NECESARRY####
 
 def rephrase_hard(question, nouns, verbs):
     print("tagged question: ", question)
@@ -162,7 +161,6 @@ def rephrase_hard(question, nouns, verbs):
 
 LOC_PP = set(["in", "on", "at", "to"])
 
-
 def constituency_search(qtype, tree, qtree):
 
     #print("Question Type: ", qtype)
@@ -182,16 +180,17 @@ def constituency_search(qtype, tree, qtree):
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
+            pattern = nltk.ParentedTree.fromstring("(PP)")
+            subtree = pattern_matcher(pattern, tree)
+
+            if subtree is not None:
+                return (" ".join(subtree.leaves()))
+
             return None
 
-        #print(" ".join(subtree.leaves()))
-        #print("\nSubtree1: ", subtree)
-
-        # create a new pattern to match a smaller subset of subtree
         pattern = nltk.ParentedTree.fromstring("(PP)")
-        #print("Pattern two found: ")
-        # Find and print the answer
         subtree2 = None
+
         if subtree is not None:
             subtree2 = pattern_matcher(pattern, subtree)
         if subtree2 is not None:
@@ -326,9 +325,8 @@ def get_answer(question, story):
     qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
 
-    #Ignore for now, not sure if wordnet is going to be necesarry for Hard questions with our current Baseline#
     if(qdiff == 'Hard'):
-        #print("###### hard question #######")
+        #print("#####################################################entering hard shit")
         DATA_DIR = "./wordnet"
         noun_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_nouns.csv"))
         verb_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_verbs.csv"))
@@ -371,14 +369,13 @@ def get_answer(question, story):
     ###debugging tool to step through questions!
     stop = False
 
-    ###change for specific debugging aproach
-    if qdiff == "Hard":
+    if question_type == "Where":
         stop = False
 
 
     if stop is True:
         try:
-            print("Exit with q\nContinue with any other key...")
+            print("Exit with q, Continue with any key...")
             quit = input()
             if quit is 'q':
                 exit()
