@@ -79,7 +79,7 @@ def find_who_answer( qtext, qgraph, sgraph):
                 if key_word is not None:
                     for item in node["deps"]:
                         address = node["deps"][item][0]
-                        if (sgraph.nodes[address]["rel"] in "nsubjpass" or 
+                        if ((sgraph.nodes[address]["rel"] in "nsubjpass") or
                             sgraph.nodes[address]["rel"] == "dobj" or 
                             sgraph.nodes[address]["rel"] == "nmod"):
                             deps = get_dependents( sgraph.nodes[address],sgraph)
@@ -344,7 +344,6 @@ def constituency_search(qtype, tree, qtree):
 
     return None
 
-
 def get_answer(question, story):
 
 
@@ -450,6 +449,23 @@ def get_answer(question, story):
             answer = "the best guess"
     else:
         answer = sub_answer
+    answer = None
+    if sent_index is not None:
+        if question_type == "Who":
+            answer_graph = ""
+            if question['type'] == 'Sch':
+                answer_graph = story['sch_dep'][sent_index]
+            else:
+                answer_graph = story["story_dep"][sent_index]
+            answer = find_who_answer( qtext, question["dep"], answer_graph )
+        else:
+            answer = constituency_search(question_type, stree[sent_index], qtree)
+
+    #print("Consistency Search Results: ", cons_answer)
+    if answer is None:
+        answer = best_sent
+        if answer is None:
+            answer = "the best guess"
 
 #    print("Final Answer: ", answer, "\n")
 
