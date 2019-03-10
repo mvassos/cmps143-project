@@ -30,24 +30,25 @@ def find_node(word, graph):
 def get_dependents(node, graph):
     results = []
     for item in node["deps"]:
-        address = node["deps"][item][0]
-        dep = graph.nodes[address]
-        results.append(dep)
-        results = results + get_dependents(dep, graph)
+        if item != "acl:relcl":
+            address = node["deps"][item][0]
+            dep = graph.nodes[address]
+            results.append(dep)
+            results = results + get_dependents(dep, graph)
     return results
 
 def find_who_answer( qtext, qgraph, sgraph):
     qmain = find_main(qgraph)
     snode = find_node(qmain, sgraph)
     if snode is not None:
-    	for item in snode["deps"]:
-    		address = snode["deps"][item][0]
-    		if ( sgraph.nodes[address]["rel"] in "nsubjpass" ):
-    			deps = get_dependents( sgraph.nodes[address], sgraph )
-    			deps = sorted( deps+[sgraph.nodes[address]], 
-    						   key=operator.itemgetter("address") )
-    			return " ".join( dep["word"] for dep in deps )
-    	for node in sgraph.nodes.values():
+        for item in snode["deps"]:
+            address = snode["deps"][item][0]
+            if ( sgraph.nodes[address]["rel"] in "nsubjpass" ):
+                deps = get_dependents( sgraph.nodes[address], sgraph )
+                deps = sorted( deps+[sgraph.nodes[address]], 
+                               key=operator.itemgetter("address") )
+                return " ".join( dep["word"] for dep in deps )
+        for node in sgraph.nodes.values():
             if node.get( 'head', None ) is not None:
                 if node['rel'] == "nsubj":
                     deps = get_dependents(node, sgraph)
@@ -206,7 +207,6 @@ def load_wordnet_ids(filename):
     return word_ids
 
 ###NEW FUNCTION TO MANIPULATE "HARD" QUESTIONS###
-####NOT IMPLEMENTED FULLY YET, NOT SURE IF EVEN NECESARRY####
 
 def rephrase_hard(question, nouns, verbs):
     print("tagged question: ", question)
@@ -239,7 +239,6 @@ def rephrase_hard(question, nouns, verbs):
 
 LOC_PP = set(["in", "on", "at", "to"])
 
-
 def constituency_search(qtype, tree, qtree):
 
     #print("Question Type: ", qtype)
@@ -259,16 +258,17 @@ def constituency_search(qtype, tree, qtree):
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
+            pattern = nltk.ParentedTree.fromstring("(PP)")
+            subtree = pattern_matcher(pattern, tree)
+
+            if subtree is not None:
+                return (" ".join(subtree.leaves()))
+
             return None
 
-        #print(" ".join(subtree.leaves()))
-        #print("\nSubtree1: ", subtree)
-
-        # create a new pattern to match a smaller subset of subtree
         pattern = nltk.ParentedTree.fromstring("(PP)")
-        #print("Pattern two found: ")
-        # Find and print the answer
         subtree2 = None
+
         if subtree is not None:
             subtree2 = pattern_matcher(pattern, subtree)
         if subtree2 is not None:
@@ -344,6 +344,7 @@ def constituency_search(qtype, tree, qtree):
 
     return None
 
+
 def get_answer(question, story):
 
 
@@ -402,9 +403,8 @@ def get_answer(question, story):
     qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
 
-    #Ignore for now, not sure if wordnet is going to be necesarry for Hard questions with our current Baseline#
     if(qdiff == 'Hard'):
-        #print("###### hard question #######")
+        #print("#####################################################entering hard shit")
         DATA_DIR = "./wordnet"
         noun_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_nouns.csv"))
         verb_ids = load_wordnet_ids("{}/{}".format(DATA_DIR, "Wordnet_verbs.csv"))
@@ -430,26 +430,7 @@ def get_answer(question, story):
 #    print("\nSentence Selected: ", best_sent, "\n")
 
     sent_index = get_sentence_index(sentences, best_sent)
-    sub_answer = None
-    if sent_index is not None:
-    	if question_type == "Who":
-    		answer_dep = []
-    		if question["type"] == "Sch":
-    			answer_dep = story["sch_dep"][sent_index]
-    		else:
-    			answer_dep = story["story_dep"][sent_index]
-    		sub_answer = find_who_answer( qtext, question["dep"], answer_dep)
-    	else:
-        	sub_answer = constituency_search(question_type, stree[sent_index], qtree)
-
-    #print("Consistency Search Results: ", cons_answer)
-    if sub_answer is None:
-        answer = best_sent
-        if answer is None:
-            answer = "the best guess"
-    else:
-        answer = sub_answer
-    answer = None
+    cons_answer = None
     if sent_index is not None:
         if question_type == "Who":
             answer_graph = ""
@@ -457,29 +438,34 @@ def get_answer(question, story):
                 answer_graph = story['sch_dep'][sent_index]
             else:
                 answer_graph = story["story_dep"][sent_index]
-            answer = find_who_answer( qtext, question["dep"], answer_graph )
+            cons_answer = find_who_answer( qtext, question["dep"], answer_graph )
+        elif question_type == "Did":
+            print("ID: ", question['qid'])
+            print( qtext )
+            cons_answer = "yes no"
         else:
-            answer = constituency_search(question_type, stree[sent_index], qtree)
+            cons_answer = constituency_search(question_type, stree[sent_index], qtree)
 
     #print("Consistency Search Results: ", cons_answer)
-    if answer is None:
+    if cons_answer is None:
         answer = best_sent
         if answer is None:
             answer = "the best guess"
+    else:
+        answer = cons_answer
 
 #    print("Final Answer: ", answer, "\n")
-
+#    print( "-----------------------------------------------------------------------------")
     ###debugging tool to step through questions!
     stop = False
 
-    ###change for specific debugging aproach
-    if qdiff == "Hard":
+    if question_type == "Where":
         stop = False
 
 
     if stop is True:
         try:
-            print("Exit with q\nContinue with any other key...")
+            print("Exit with q, Continue with any key...")
             quit = input()
             if quit is 'q':
                 exit()
