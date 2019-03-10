@@ -11,6 +11,84 @@ STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
 from baseline import get_the_right_sentence_maybe
 
+def find_main(graph):
+    for node in graph.nodes.values():
+        if node['rel'] == 'root':
+            return node
+    return None
+    
+def find_node(word, graph):
+    for node in graph.nodes.values():
+        # Lemmatizers don't work at its best so try to find a match by using
+        # lemmatized word with lemmatized graph word, word with graph word, or
+        # lemmatized word with graph word
+        if (node["lemma"] == word["lemma"] or node["word"] == word["word"]
+            or (node["lemma"] is not None and word["word"] in node["lemma"])):
+            return node
+    return None
+    
+def get_dependents(node, graph):
+    results = []
+    for item in node["deps"]:
+        if item != "acl:relcl":
+            address = node["deps"][item][0]
+            dep = graph.nodes[address]
+            results.append(dep)
+            results = results + get_dependents(dep, graph)
+    return results
+
+def find_who_answer( qtext, qgraph, sgraph):
+    qmain = find_main(qgraph)
+    snode = find_node(qmain, sgraph)
+    if snode is not None:
+        for item in snode["deps"]:
+            address = snode["deps"][item][0]
+            if ( sgraph.nodes[address]["rel"] in "nsubjpass" ):
+                deps = get_dependents( sgraph.nodes[address], sgraph )
+                deps = sorted( deps+[sgraph.nodes[address]], 
+                               key=operator.itemgetter("address") )
+                return " ".join( dep["word"] for dep in deps )
+        for node in sgraph.nodes.values():
+            if node.get( 'head', None ) is not None:
+                if node['rel'] == "nsubj":
+                    deps = get_dependents(node, sgraph)
+                    deps = sorted(deps+[node], 
+                                  key=operator.itemgetter("address"))
+                    return " ".join(dep["word"] for dep in deps)
+    else: # who question main word not in sentence
+        if "who is the story about?" in qtext.lower():
+            dep = []
+            # Get all the nouns in the sentence but avoid pronouns, except for I
+            # if its a narration
+            for node in sgraph.nodes.values():
+                if (( (node["rel"] is not None and node["rel"] in "nsubjpass" 
+                    and node["tag"] != "PRP")) or node["word"] == "I"):
+                    dep.append( node )
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        dep.append( sgraph.nodes[address] )
+            dep = sorted( dep, key=operator.itemgetter("address") )
+            return " ".join(t["word"] for t in dep)
+        else: 
+            # the main word in the question does not appear in the given answer
+            # sentence, try to find the solution by checking if a word from the 
+            # sentence is in the question, if that word's dependency revolves 
+            # around a nsubj, dobj, or has nmod relation return it and its 
+            # dependents
+            for node in sgraph.nodes.values():
+                key_word = find_node( node, qgraph ) # word in the question
+                if key_word is not None:
+                    for item in node["deps"]:
+                        address = node["deps"][item][0]
+                        if ((sgraph.nodes[address]["rel"] in "nsubjpass") or
+                            sgraph.nodes[address]["rel"] == "dobj" or 
+                            sgraph.nodes[address]["rel"] == "nmod"):
+                            deps = get_dependents( sgraph.nodes[address],sgraph)
+                            deps = sorted(deps+[sgraph.nodes[address]], 
+                                          key=operator.itemgetter("address"))
+                            return " ".join(dep["word"] for dep in deps)
+    return None
+
 # The standard NLTK pipeline for POS tagging a document
 def get_sentences(text):
     sentences = nltk.sent_tokenize(text)
@@ -163,29 +241,20 @@ LOC_PP = set(["in", "on", "at", "to"])
 
 def constituency_search(qtype, tree, qtree):
 
-    #print("Question Type: ", qtype)
-    #print("\nTree of Question: ", qtree)
-    #print("\nTree of selected Sentence: ", tree)
-
-
     qtype = qtype.lower()
 
     if qtype == 'where':
-        #print("*WHERE*\n")
         # Create our pattern
         pattern = nltk.ParentedTree.fromstring("(VP (*) (PP))")
 
         # # Match our pattern to the tree
-        #print("\nPattern one found: ")
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
             pattern = nltk.ParentedTree.fromstring("(PP)")
             subtree = pattern_matcher(pattern, tree)
-
             if subtree is not None:
                 return (" ".join(subtree.leaves()))
-
             return None
 
         pattern = nltk.ParentedTree.fromstring("(PP)")
@@ -195,27 +264,18 @@ def constituency_search(qtype, tree, qtree):
             subtree2 = pattern_matcher(pattern, subtree)
         if subtree2 is not None:
             ans = (" ".join(subtree2.leaves()))
-            #print("ans before: ", ans)
-            #for pp in LOC_PP:
-             #   if pp in ans:
-              #      ans = ans.replace(pp, "")
-            #print("ans after: ", ans)
             return ans
 
     elif qtype == 'why':
-        #print("*WHY*\n")
-        #create first 'why' pattern looking for because
         pattern = nltk.ParentedTree.fromstring("(SBAR (*))")
 
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
-            #answer does not include 'becasue'
             pattern = nltk.ParentedTree.fromstring("(VP (*) (S)) ")
             subtree = pattern_matcher(pattern, tree)
 
             if subtree is not None:
-                #isolate (S)
                 pattern = nltk.ParentedTree.fromstring("(S)")
                 subtree2 = pattern_matcher(pattern, subtree)
                 if subtree2 is not None:
@@ -226,14 +286,12 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "who":
-        #print(" *WHO*\n")
         pattern = nltk.ParentedTree.fromstring("(NP)")
         subtree = pattern_matcher(pattern, tree)
         if subtree is not None:
             return (" ".join(subtree.leaves()))
 
     elif qtype == "what":
-        #print(" *WHAT*\n")
         pattern = nltk.ParentedTree.fromstring("(VP (*) (NP))")
         subtree = pattern_matcher(pattern, tree)
 
@@ -250,7 +308,6 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "when":
-        #   print(" *WHEN* not implemented\n")
         pattern = nltk.ParentedTree.fromstring("(NP-TMP)")
         subtree = pattern_matcher(pattern, tree)
 
@@ -318,10 +375,6 @@ def get_answer(question, story):
 
     question_type = get_sentences(qtext)[0][0][0]
 
-    print("\nQuestion: ", qtext)
-    print("ID: ", question['qid'])
-    print("Difficulty: ", qdiff)
-
     qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
 
@@ -349,39 +402,27 @@ def get_answer(question, story):
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-    print("\nSentence Selected: ", best_sent, "\n")
-
     sent_index = get_sentence_index(sentences, best_sent)
     cons_answer = None
     if sent_index is not None:
-        cons_answer = constituency_search(question_type, stree[sent_index], qtree)
+        if question_type == "Who":
+            answer_graph = ""
+            if question['type'] == 'Sch':
+                answer_graph = story['sch_dep'][sent_index]
+            else:
+                answer_graph = story["story_dep"][sent_index]
+            cons_answer = find_who_answer( qtext, question["dep"], answer_graph )
+        elif question_type == "Did":
+            cons_answer = "yes no"
+        else:
+            cons_answer = constituency_search(question_type, stree[sent_index], qtree)
 
-    #print("Consistency Search Results: ", cons_answer)
     if cons_answer is None:
         answer = best_sent
         if answer is None:
             answer = "the best guess"
     else:
         answer = cons_answer
-
-    print("Final Answer: ", answer, "\n")
-
-    ###debugging tool to step through questions!
-    stop = False
-
-    if question_type == "Where":
-        stop = False
-
-
-    if stop is True:
-        try:
-            print("Exit with q, Continue with any key...")
-            quit = input()
-            if quit is 'q':
-                exit()
-
-        except SyntaxError:
-            pass
 
     ###     End of Your Code         ###
     return answer
