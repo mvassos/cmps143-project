@@ -48,8 +48,27 @@ def baseline(qbow, sentences, stopwords, question):
 
     # Collect all the candidate answers
     answers = []
+    subject = None
     for sent in sentences:
         # A list of all the word tokens in the sentence
+        
+        #let's try some subject replacement
+        #print(sent)
+        if(sent[0][1] == "NNP"):
+            subject = sent[0]
+        newSent = []
+        for word in sent:
+            if word[0].lower() in ['he', 'she'] and subject is not None:
+                if(debug): print("replacing")
+                newSent.append(subject)
+            else:
+                newSent.append(word)
+            if word[1] == "NNP":
+                #subject = word
+                pass
+        sent = newSent
+
+
         sbow = get_bow(sent, stopwords)
         
         # Count the # of overlapping words between the Q and the A
@@ -104,16 +123,32 @@ def baseline(qbow, sentences, stopwords, question):
                     if debug: print("LPL: ", l)
         if(type == "What"):
             #print(qbow)
-
+            '''
             if debug: print("QUESTION: ", q_sents[0])
             if debug: print("SUBJECT: ", subj)
             if verb is not None:
                 if verb == "did":
                     if debug: print("VERB IS DID!!")
+                    subj =  q_sents[0][2][0]
+                    verb2 = q_sents[0][3][0]
+                    if subj == "the":
+                        subj += (" " + q_sents[0][3][0])
+                        verb2 = q_sents[0][4][0]
+
+                    phrase = subj + " " + verb2
+
+                    print(phrase)
+                    if phrase in sent:
+                        print("YEEEEEEEETUSSSSSSSS")
+                        best_answer = a[1]
+
                 if(verb in sent):
                     pass
                     #best_answer = a[1]
-
+                if subj is not None:
+                    if subj + " verb" in sent:
+                        best_answer = a[1]
+            '''
 
             #what WAS _______
             #find was is na significant word.
@@ -142,6 +177,9 @@ def baseline(qbow, sentences, stopwords, question):
                 if r in sent:
                     best_answer = a[1]
             pass
+        if(type == "Did"):
+            #sorry mom
+            best_answer = [("yes","yes")]
 
     #for "who was the story about" case
     if bestNounCount[0] != 0:
@@ -168,6 +206,15 @@ def toPresentTense(word):
         "hid":"hide",
         "got": "get",
         "stood": "stand",
+        "ran": "run",
+        "fed": "feed",
+        "had": "have",
+        "heard": "hear",
+        "stood": "stand",
+        "met": "meet",
+        "strike": "attack",
+        "revolt": "rebel",
+        "combust": "burn",
     }
     if word in translations:
         return translations[word]
@@ -187,7 +234,7 @@ def get_the_right_sentence_maybe(question_id):
     question = q["text"]
     if debug: print("question:", question)
     stopwords = set(nltk.corpus.stopwords.words("english"))
-    moreStopWords = set([",", ".", "?"])
+    moreStopWords = set([",", ".", "?", "'s"])
     stopwords = stopwords.union(moreStopWords)
 
     qbow = get_bow(get_sentences(question)[0], stopwords)
