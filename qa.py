@@ -241,29 +241,20 @@ LOC_PP = set(["in", "on", "at", "to"])
 
 def constituency_search(qtype, tree, qtree):
 
-    #print("Question Type: ", qtype)
-    #print("\nTree of Question: ", qtree)
-    #print("\nTree of selected Sentence: ", tree)
-
-
     qtype = qtype.lower()
 
     if qtype == 'where':
-        #print("*WHERE*\n")
         # Create our pattern
         pattern = nltk.ParentedTree.fromstring("(VP (*) (PP))")
 
         # # Match our pattern to the tree
-        #print("\nPattern one found: ")
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
             pattern = nltk.ParentedTree.fromstring("(PP)")
             subtree = pattern_matcher(pattern, tree)
-
             if subtree is not None:
                 return (" ".join(subtree.leaves()))
-
             return None
 
         pattern = nltk.ParentedTree.fromstring("(PP)")
@@ -273,27 +264,18 @@ def constituency_search(qtype, tree, qtree):
             subtree2 = pattern_matcher(pattern, subtree)
         if subtree2 is not None:
             ans = (" ".join(subtree2.leaves()))
-            #print("ans before: ", ans)
-            #for pp in LOC_PP:
-             #   if pp in ans:
-              #      ans = ans.replace(pp, "")
-            #print("ans after: ", ans)
             return ans
 
     elif qtype == 'why':
-        #print("*WHY*\n")
-        #create first 'why' pattern looking for because
         pattern = nltk.ParentedTree.fromstring("(SBAR (*))")
 
         subtree = pattern_matcher(pattern, tree)
 
         if subtree is None:
-            #answer does not include 'becasue'
             pattern = nltk.ParentedTree.fromstring("(VP (*) (S)) ")
             subtree = pattern_matcher(pattern, tree)
 
             if subtree is not None:
-                #isolate (S)
                 pattern = nltk.ParentedTree.fromstring("(S)")
                 subtree2 = pattern_matcher(pattern, subtree)
                 if subtree2 is not None:
@@ -304,14 +286,12 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "who":
-        #print(" *WHO*\n")
         pattern = nltk.ParentedTree.fromstring("(NP)")
         subtree = pattern_matcher(pattern, tree)
         if subtree is not None:
             return (" ".join(subtree.leaves()))
 
     elif qtype == "what":
-        #print(" *WHAT*\n")
         pattern = nltk.ParentedTree.fromstring("(VP (*) (NP))")
         subtree = pattern_matcher(pattern, tree)
 
@@ -328,7 +308,6 @@ def constituency_search(qtype, tree, qtree):
             return (" ".join(subtree.leaves()))
 
     elif qtype == "when":
-        #   print(" *WHEN* not implemented\n")
         pattern = nltk.ParentedTree.fromstring("(NP-TMP)")
         subtree = pattern_matcher(pattern, tree)
 
@@ -396,10 +375,6 @@ def get_answer(question, story):
 
     question_type = get_sentences(qtext)[0][0][0]
 
-#    print("\nQuestion: ", qtext)
-#    print("ID: ", question['qid'])
-#    print("Difficulty: ", qdiff)
-
     qsentence = get_sentences(qtext)
     sentences = get_sentences(stext)
 
@@ -427,8 +402,6 @@ def get_answer(question, story):
 
     best_sent = get_the_right_sentence_maybe(question['qid'])
 
-#    print("\nSentence Selected: ", best_sent, "\n")
-
     sent_index = get_sentence_index(sentences, best_sent)
     cons_answer = None
     if sent_index is not None:
@@ -440,38 +413,16 @@ def get_answer(question, story):
                 answer_graph = story["story_dep"][sent_index]
             cons_answer = find_who_answer( qtext, question["dep"], answer_graph )
         elif question_type == "Did":
-            print("ID: ", question['qid'])
-            print( qtext )
             cons_answer = "yes no"
         else:
             cons_answer = constituency_search(question_type, stree[sent_index], qtree)
 
-    #print("Consistency Search Results: ", cons_answer)
     if cons_answer is None:
         answer = best_sent
         if answer is None:
             answer = "the best guess"
     else:
         answer = cons_answer
-
-#    print("Final Answer: ", answer, "\n")
-#    print( "-----------------------------------------------------------------------------")
-    ###debugging tool to step through questions!
-    stop = False
-
-    if question_type == "Where":
-        stop = False
-
-
-    if stop is True:
-        try:
-            print("Exit with q, Continue with any key...")
-            quit = input()
-            if quit is 'q':
-                exit()
-
-        except SyntaxError:
-            pass
 
     ###     End of Your Code         ###
     return answer
